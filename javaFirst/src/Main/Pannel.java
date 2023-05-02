@@ -13,7 +13,7 @@ import Inputs.MouseInputs;
 import java.awt.Dimension;
 
 public class Pannel extends JPanel {
-    private int firstX = 100, firstY = 100, topLeftX, topLeftY;
+    private int firstX = 100, firstY = 100, topLeftX, topLeftY, squrDim, gamePointX, gamePointY, offset;
     private BufferedImage checkersBorder, redSquare, blackSquare, point, highlighter, blueThing, redThing, blueKing,
             redKing;
     private double scaling = 1.0;
@@ -45,7 +45,7 @@ public class Pannel extends JPanel {
     }
 
     public void paintComponent(Graphics g) {// here we draw
-        if(redLose()||blueLose()){
+        if (redLose() || blueLose()) {
             return;
         }
         super.paintComponent(g);
@@ -78,103 +78,45 @@ public class Pannel extends JPanel {
     }
 
     private void drawSquaresAndThings(Graphics g) {
-        int gamePointX = topLeftX + (int) (5 * scaling), gamePointY = topLeftY + (int) (5 * scaling);// the 0,0 of the
-                                                                                                     // checkers map
-        int squrDim = (int) (redSquare.getWidth() * scaling);// squares dimention based on resolution
+        gamePointX = topLeftX + (int) (5 * scaling);
+        gamePointY = topLeftY + (int) (5 * scaling);// the 0,0 of the checkers map
+        squrDim = (int) (redSquare.getWidth() * scaling);// squares dimention based on resolution
         int thingDim = (int) (blueThing.getWidth() * scaling);
-        int offset = (int) (checkersBorder.getWidth() * scaling - (int) (10 * scaling) - (int) (squrDim * 8));
+        offset = (int) (checkersBorder.getWidth() * scaling - (int) (10 * scaling) - (int) (squrDim * 8));
         for (int i = 0; i < 8; i++) {// spawn squares
             for (int j = 0; j < 8; j++) {
                 if (squrinfo[i][j].highlight == true) {// if highlight square
-                    if (i == 7 && j != 7) {// right offset
-                        g.drawImage(highlighter, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim,
-                                squrDim + offset, null);
-                        squrinfo[i][j].width = squrDim;
-                        squrinfo[i][j].height = squrDim + offset;
-                    } else if (j == 7 && i != 7) {// down offset
-                        g.drawImage(highlighter, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim + offset,
-                                squrDim, null);
-                        squrinfo[i][j].width = squrDim + offset;
-                        squrinfo[i][j].height = squrDim;
-                    }
-                    if (j == 7 && i == 7) {// down right offset
-                        g.drawImage(highlighter, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim + offset,
-                                squrDim + offset, null);
-                        squrinfo[i][j].width = squrDim + offset;
-                        squrinfo[i][j].height = squrDim + offset;
-                    } else {// default
-                        g.drawImage(highlighter, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim, squrDim,
-                                null);
-                        squrinfo[i][j].width = squrDim;
-                        squrinfo[i][j].height = squrDim;
-                    }
+                    drawSquareForEachCase(g, highlighter, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i,
+                            squrDim,
+                            squrDim, offset, 0);
+
                 } else if ((i + j) % 2 == 0) {// if black square
-                    if (i == 7 && j != 7) {// right offset
-                        g.drawImage(redSquare, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim,
-                                squrDim + offset, null);
-                        squrinfo[i][j].width = squrDim;
-                        squrinfo[i][j].height = squrDim + offset;
-                    } else if (j == 7 && i != 7) {// down offset
-                        g.drawImage(redSquare, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim + offset,
-                                squrDim, null);
-                        squrinfo[i][j].width = squrDim + offset;
-                        squrinfo[i][j].height = squrDim;
-                    }
-                    if (j == 7 && i == 7) {// down right offset
-                        g.drawImage(redSquare, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim + offset,
-                                squrDim + offset, null);
-                        squrinfo[i][j].width = squrDim + offset;
-                        squrinfo[i][j].height = squrDim + offset;
-                    } else {// default
-                        g.drawImage(redSquare, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim, squrDim,
-                                null);
-                        squrinfo[i][j].width = squrDim;
-                        squrinfo[i][j].height = squrDim;
-                    }
+                    drawSquareForEachCase(g, redSquare, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i,
+                            squrDim,
+                            squrDim, offset, 0);
                 } else {// if red square
-                    if (i == 7 && j != 7) {// right offset
-                        g.drawImage(blackSquare, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim,
-                                squrDim + offset, null);
-                        squrinfo[i][j].width = squrDim;
-                        squrinfo[i][j].height = squrDim + offset;
-                    } else if (j == 7 && i != 7) {// down offset
-                        g.drawImage(blackSquare, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim + offset,
-                                squrDim, null);
-                        squrinfo[i][j].width = squrDim + offset;
-                        squrinfo[i][j].height = squrDim;
-                    }
-                    if (j == 7 && i == 7) {// down right offset
-                        g.drawImage(blackSquare, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim + offset,
-                                squrDim + offset, null);
-                        squrinfo[i][j].width = squrDim + offset;
-                        squrinfo[i][j].height = squrDim + offset;
-                    } else {// default
-                        g.drawImage(blackSquare, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim, squrDim,
-                                null);
-                        squrinfo[i][j].width = squrDim;
-                        squrinfo[i][j].height = squrDim;
-                    }
+                    drawSquareForEachCase(g, blackSquare, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i,
+                            squrDim,
+                            squrDim, offset, 0);
                 }
                 squrinfo[i][j].locationX = gamePointX + squrDim * j;
                 squrinfo[i][j].locationY = gamePointY + squrDim * i;
                 // draw the things
                 if (squrinfo[i][j].blue == true && squrinfo[i][j].red == false) {
-                    if(squrinfo[i][j].king){
+                    if (squrinfo[i][j].king) {
                         g.drawImage(blueKing, gamePointX + thingDim * j, gamePointY + thingDim * i, thingDim, thingDim,
-                            null);
-                    }
-                    else{
+                                null);
+                    } else {
                         g.drawImage(blueThing, gamePointX + thingDim * j, gamePointY + thingDim * i, thingDim, thingDim,
-                            null);
+                                null);
                     }
                 } else if (squrinfo[i][j].blue == false && squrinfo[i][j].red == true) {
-                    if(squrinfo[i][j].king){
+                    if (squrinfo[i][j].king) {
                         g.drawImage(redKing, gamePointX + thingDim * j, gamePointY + thingDim * i, thingDim, thingDim,
-                            null);
-                    }
-                    else{
+                                null);
+                    } else {
                         g.drawImage(redThing, gamePointX + thingDim * j, gamePointY + thingDim * i, thingDim, thingDim,
-                            null);
+                                null);
                     }
                 }
                 if (squrinfo[i][j].possibleMove == true) {// if possible move on a square
@@ -201,20 +143,48 @@ public class Pannel extends JPanel {
             e.printStackTrace();
         }
     }
-    private boolean redLose(){
+
+    private void drawSquare(Graphics g, BufferedImage image, int i, int j, int x, int y, int width, int height,
+            int offsetWidth, int offsetHeight) {
+        g.drawImage(image, x, y, width + offsetWidth, height + offsetHeight, null);
+        squrinfo[i][j].width = width + offsetWidth;
+        squrinfo[i][j].height = height + offsetHeight;
+    }
+
+    private void drawSquareForEachCase(Graphics g, BufferedImage image, int i, int j, int x, int y, int width,
+            int height,
+            int offsetWidth, int offsetHeight) {
+        if (i == 7 && j != 7) {// down offset
+            drawSquare(g, image, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim,
+                    squrDim, 0, offset);
+        } else if (j == 7 && i != 7) {// right offset
+            drawSquare(g, image, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim,
+                    squrDim, offset, 0);
+        }
+        if (j == 7 && i == 7) {// down right offset
+            drawSquare(g, image, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim,
+                    squrDim, offset, offset);
+        } else {// default
+            drawSquare(g, image, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim,
+                    squrDim, 0, 0);
+        }
+    }
+
+    private boolean redLose() {
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
-                if(squrinfo[i][j].red == true){
+                if (squrinfo[i][j].red == true) {
                     return false;
                 }
             }
         }
         return true;
     }
-    private boolean blueLose(){
+
+    private boolean blueLose() {
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
-                if(squrinfo[i][j].blue == true){
+                if (squrinfo[i][j].blue == true) {
                     return false;
                 }
             }
