@@ -4,6 +4,7 @@ import java.awt.event.MouseEvent;
 import javax.swing.event.MenuDragMouseEvent;
 import javax.swing.event.MenuDragMouseListener;
 import javax.swing.event.MouseInputListener;
+import javax.swing.SwingUtilities;
 
 import Main.Pannel;
 import Main.squrInfo;
@@ -41,266 +42,174 @@ public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                int locationX = pannel.squrinfo[i][j].locationX;
-                int locationY = pannel.squrinfo[i][j].locationY;
-                int height = pannel.squrinfo[i][j].height;
-                int width = pannel.squrinfo[i][j].width;
-                if (e.getX() >= locationX && e.getY() >= locationY && e.getX() <= locationX + width
-                        && e.getY() <= locationY + height) {// find the square which is clicked
-                    disableHighlights();
-                    pannel.squrinfo[i][j].highlight = true;
-                    if (pannel.squrinfo[i][j].red == true && !jTurn) {// if red
-                        disablePaths();
-                        if (pannel.squrinfo[i][j].king) {
-                            redKingLeftPattern( i,  j);
-                            redKingRightPattern( i,  j);
-                        }
-                        redLeftPattern(i, j);
-                        redRightPattern(i, j);
-                        moveX = j;
-                        moveY = i;
-                        red = true;
-                        blue = false;
-                    } else if (pannel.squrinfo[i][j].blue == true && jTurn) {// if blue
-                        disablePaths();
-                        if (pannel.squrinfo[i][j].king) {
-                            blueKingLeftPattern(i,j);
-                            blueKingRightPattern(i,j);
-                        }
-                        blueLeftPattern(i, j);
-                        blueRightPattern(i, j);
-                        moveX = j;
-                        moveY = i;
-                        red = false;
-                        blue = true;
-                    } else if (pannel.squrinfo[i][j].possibleMove == true) {// if move
-                        if (jTurn) {// switch turns
-                            jTurn = false;
+        if (SwingUtilities.isLeftMouseButton(e)) {
+            for (int i = 0; i < 8; i++) {
+                for (int j = 0; j < 8; j++) {
+                    
+                    int locationX = pannel.squrinfo[i][j].locationX;
+                    int locationY = pannel.squrinfo[i][j].locationY;
+                    int height = pannel.squrinfo[i][j].height;
+                    int width = pannel.squrinfo[i][j].width;
+
+                    if (e.getX() >= locationX && e.getY() >= locationY && e.getX() <= locationX + width
+                            && e.getY() <= locationY + height) {// find the square which is clicked
+                        disableHighlights();
+                        pannel.squrinfo[i][j].highlight = true;
+                        if (pannel.squrinfo[i][j].red == true && !jTurn) {// if red
+                            disablePaths();
+                            if (pannel.squrinfo[i][j].king) {
+                                kingPattern(i, j, "left", "red");
+                                kingPattern(i, j, "right", "red");
+                            }
+                            normalPattern(i, j, "left", "red");
+                            normalPattern(i, j, "right", "red");
+                            moveX = j;
+                            moveY = i;
+                            red = true;
+                            blue = false;
+                        } else if (pannel.squrinfo[i][j].blue == true && jTurn) {// if blue
+                            disablePaths();
+                            if (pannel.squrinfo[i][j].king) {
+                                kingPattern(i, j, "left", "blue");
+                                kingPattern(i, j, "right", "blue");
+                            }
+                            normalPattern(i, j, "left", "blue");
+                            normalPattern(i, j, "right", "blue");
+                            moveX = j;
+                            moveY = i;
+                            red = false;
+                            blue = true;
+                        } else if (pannel.squrinfo[i][j].possibleMove == true) {// if move
+                            if (jTurn) {// switch turns
+                                jTurn = false;
+                            } else {
+                                jTurn = true;
+                            }
+                            disablePaths();
+                            if (red) {// if move red
+                                pannel.squrinfo[i][j].red = true;
+                                DeleteEnemy(i, j);
+                            } else if (blue) {// if move blue
+                                pannel.squrinfo[i][j].blue = true;
+                                DeleteEnemy(i, j);
+                            }
+                            if (i == 0 || i == 7) {// promote to king if needed
+                                pannel.squrinfo[i][j].king = true;
+                            }
+                            if (pannel.squrinfo[moveY][moveX].king == true) {// remain king if already king
+                                pannel.squrinfo[i][j].king = true;
+                                blue = true;
+                                pannel.squrinfo[moveY][moveX].king = false;
+                            }
                         } else {
-                            jTurn = true;
+                            disablePaths();
                         }
-                        disablePaths();
-                        if (red) {// if move red
-                            pannel.squrinfo[i][j].red = true;
-                            DeleteEnemy(i,j);
-                        } else if (blue) {// if move blue
-                            pannel.squrinfo[i][j].blue = true;
-                            DeleteEnemy(i,j);
-                        }
-                        if (i == 0 || i == 7) {// promote to king if needed
-                            pannel.squrinfo[i][j].king = true;
-                        }
-                        if(pannel.squrinfo[moveY][moveX].king == true){//remain king if already king
-                            pannel.squrinfo[i][j].king = true;
-                            blue = true;
-                            blue = true;
-                            pannel.squrinfo[moveY][moveX].king = false;
-                        }
-                    } else {
-                        disablePaths();
                     }
                 }
             }
+        } else {
+            disableHighlights();
+            disablePaths();
         }
     }
 
-    private void DeleteEnemy(int i,int j) {//the only way to destroy fuckers
-        if(i<moveY){
+    private void DeleteEnemy(int i, int j) {// the only way to destroy fuckers
+        if (i < moveY) {
             if (j < moveX) {
-                for (int o=moveX,p=moveY; j < o; o--, p--) {// destroy enemy
+                for (int o = moveX, p = moveY; j < o; o--, p--) {// destroy enemy
                     pannel.squrinfo[p][o].red = false;
                     pannel.squrinfo[p][o].blue = false;
                 }
             }
             if (j > moveX) {
-                for (int o=moveX,p=moveY; j > o; o++, p--) {// destroy enemy
+                for (int o = moveX, p = moveY; j > o; o++, p--) {// destroy enemy
                     pannel.squrinfo[p][o].red = false;
                     pannel.squrinfo[p][o].blue = false;
                 }
             }
-        }
-        else{
+        } else {
             if (j < moveX) {
-                for (int o=moveX,p=moveY; j < o; o--, p++) {// destroy enemy
+                for (int o = moveX, p = moveY; j < o; o--, p++) {// destroy enemy
                     pannel.squrinfo[p][o].red = false;
                     pannel.squrinfo[p][o].blue = false;
                 }
             }
             if (j > moveX) {
-                for (int o=moveX,p=moveY; j > o; o++, p++) {// destroy enemy
+                for (int o = moveX, p = moveY; j > o; o++, p++) {// destroy enemy
                     pannel.squrinfo[p][o].red = false;
                     pannel.squrinfo[p][o].blue = false;
                 }
             }
         }
     }
-    private void blueKingLeftPattern(int i, int j) {
-        if (j == 0 || i == 7)
+
+    private void kingPattern(int i, int j, String direction, String color) {
+        int rowModifier = color.equals("blue") ? 1 : -1;
+        int colModifier = direction.equals("left") ? -1 : 1;
+
+        if ((j == 0 && direction.equals("left")) || (j == 7 && direction.equals("right"))
+                || (i == 0 && color.equals("red")) || (i == 7 && color.equals("blue"))) {
             return;
-        if (!pannel.squrinfo[i + 1][j - 1].blue && !pannel.squrinfo[i + 1][j - 1].red) {
-            pannel.squrinfo[i + 1][j - 1].possibleMove = true;
         }
-        if (j - 2 == -1 || i + 2 == 8) {
+
+        if (!pannel.squrinfo[i + rowModifier][j + colModifier].blue
+                && !pannel.squrinfo[i + rowModifier][j + colModifier].red) {
+            pannel.squrinfo[i + rowModifier][j + colModifier].possibleMove = true;
+        }
+
+        if (j + (2 * colModifier) < 0 || j + (2 * colModifier) > 7 || i + (2 * rowModifier) < 0
+                || i + (2 * rowModifier) > 7) {
             return;
         }
-        if (pannel.squrinfo[i + 1][j - 1].red && !pannel.squrinfo[i + 2][j - 2].blue
-                && !pannel.squrinfo[i + 2][j - 2].red) {
-            pannel.squrinfo[i + 2][j - 2].possibleMove = true;
-            if (j - 3 == -1 || i + 3 == 8) {
+
+        if (pannel.squrinfo[i + rowModifier][j + colModifier].oppositeColor(color)
+                && !pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].blue
+                && !pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].red) {
+            pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].possibleMove = true;
+
+            if (j + (3 * colModifier) < 0 || j + (3 * colModifier) > 7 || i + (3 * rowModifier) < 0
+                    || i + (3 * rowModifier) > 7) {
                 return;
             }
-            if (pannel.squrinfo[i + 3][j - 3].red) {
-                blueKingLeftPattern(i + 2, j - 2);
+
+            if (pannel.squrinfo[i + (3 * rowModifier)][j + (3 * colModifier)].oppositeColor(color)) {
+                kingPattern(i + (2 * rowModifier), j + (2 * colModifier), direction, color);
             }
         }
     }
 
-    private void blueKingRightPattern(int i, int j) {
-        if (j == 7 || i == 7)
-            return;
-        if (!pannel.squrinfo[i + 1][j + 1].blue && !pannel.squrinfo[i + 1][j + 1].red) {
-            pannel.squrinfo[i + 1][j + 1].possibleMove = true;
-        }
-        if (j + 2 == 8 || i + 2 == 8) {
-            return;
-        }
-        if (pannel.squrinfo[i + 1][j + 1].red && !pannel.squrinfo[i + 2][j + 2].blue
-                && !pannel.squrinfo[i + 2][j + 2].red) {
-            pannel.squrinfo[i + 2][j + 2].possibleMove = true;
-            if (j + 3 == 8 || i + 3 == 8) {
-                return;
-            }
-            if (pannel.squrinfo[i + 3][j + 3].red) {
-                blueKingRightPattern(i + 2, j + 2);
-            }
-        }
-    }
-    private void redKingLeftPattern(int i, int j) {
-        if (j == 0 || i == 0)
-            return;
-        if (!pannel.squrinfo[i - 1][j - 1].blue && !pannel.squrinfo[i - 1][j - 1].red) {
-            pannel.squrinfo[i - 1][j - 1].possibleMove = true;
-        }
-        if (j - 2 == -1 || i - 2 == -1) {
-            return;
-        }
-        if (pannel.squrinfo[i - 1][j - 1].blue && !pannel.squrinfo[i - 2][j - 2].blue
-                && !pannel.squrinfo[i - 2][j - 2].red) {
-            pannel.squrinfo[i - 2][j - 2].possibleMove = true;
-            if (j - 3 == -1 || i - 3 == -1) {
-                return;
-            }
-            if (pannel.squrinfo[i - 3][j - 3].blue) {
-                redKingLeftPattern(i - 2, j - 2);
-            }
-        }
-    }
-    private void redKingRightPattern(int i, int j) {
-        if (j == 7 || i == 0)
-            return;
-        if (!pannel.squrinfo[i - 1][j + 1].blue && !pannel.squrinfo[i - 1][j + 1].red) {
-            pannel.squrinfo[i - 1][j + 1].possibleMove = true;
-        }
-        if (j + 2 == 8 || i - 2 == -1) {
-            return;
-        }
-        if (pannel.squrinfo[i - 1][j + 1].blue && !pannel.squrinfo[i - 2][j + 2].blue
-                && !pannel.squrinfo[i - 2][j + 2].red) {
-            pannel.squrinfo[i - 2][j + 2].possibleMove = true;
-            if (j + 3 == 8 || i - 3 == -1) {
-                return;
-            }
-            if (pannel.squrinfo[i - 3][j + 3].blue) {
-                redKingRightPattern(i - 2, j + 2);
-            }
-        }
-    }
+    private void normalPattern(int i, int j, String direction, String color) {
+        int rowModifier = color.equals("blue") ? -1 : 1;
+        int colModifier = direction.equals("left") ? 1 : -1;
 
-    private void redLeftPattern(int i, int j) {
-        if (j == 0 || i == 7)
-            return;
-        if (!pannel.squrinfo[i + 1][j - 1].blue && !pannel.squrinfo[i + 1][j - 1].red) {
-            pannel.squrinfo[i + 1][j - 1].possibleMove = true;
-        }
-        if (j - 2 == -1 || i + 2 == 8) {
+        if ((j == 7 && direction.equals("left")) || (j == 0 && direction.equals("right"))
+                || (i == 7 && color.equals("red")) || (i == 0 && color.equals("blue"))) {
             return;
         }
-        if (pannel.squrinfo[i + 1][j - 1].blue && !pannel.squrinfo[i + 2][j - 2].blue
-                && !pannel.squrinfo[i + 2][j - 2].red) {
-            pannel.squrinfo[i + 2][j - 2].possibleMove = true;
-            if (j - 3 == -1 || i + 3 == 8) {
-                return;
-            }
-            if (pannel.squrinfo[i + 3][j - 3].blue) {
-                redLeftPattern(i + 2, j - 2);
-            }
-        }
-    }
 
-    private void redRightPattern(int i, int j) {
-        if (j == 7 || i == 7)
-            return;
-        if (!pannel.squrinfo[i + 1][j + 1].blue && !pannel.squrinfo[i + 1][j + 1].red) {
-            pannel.squrinfo[i + 1][j + 1].possibleMove = true;
+        if (!pannel.squrinfo[i + rowModifier][j + colModifier].blue
+                && !pannel.squrinfo[i + rowModifier][j + colModifier].red) {
+            pannel.squrinfo[i + rowModifier][j + colModifier].possibleMove = true;
         }
-        if (j + 2 == 8 || i + 2 == 8) {
+
+        if (j + (2 * colModifier) < 0 || j + (2 * colModifier) > 7 || i + (2 * rowModifier) < 0
+                || i + (2 * rowModifier) > 7) {
             return;
         }
-        if (pannel.squrinfo[i + 1][j + 1].blue && !pannel.squrinfo[i + 2][j + 2].blue
-                && !pannel.squrinfo[i + 2][j + 2].red) {
-            pannel.squrinfo[i + 2][j + 2].possibleMove = true;
-            if (j + 3 == 8 || i + 3 == 8) {
+
+        if (pannel.squrinfo[i + rowModifier][j + colModifier].oppositeColor(color)
+                && !pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].blue
+                && !pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].red) {
+            pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].possibleMove = true;
+
+            if (j + (3 * colModifier) < 0 || j + (3 * colModifier) > 7 || i + (3 * rowModifier) < 0
+                    || i + (3 * rowModifier) > 7) {
                 return;
-            }
-            if (pannel.squrinfo[i + 3][j + 3].blue) {
-                redRightPattern(i + 2, j + 2);
             }
 
-        }
-    }
-
-    private void blueLeftPattern(int i, int j) {
-        if (j == 0 || i == 0)
-            return;
-        if (!pannel.squrinfo[i - 1][j - 1].blue && !pannel.squrinfo[i - 1][j - 1].red) {
-            pannel.squrinfo[i - 1][j - 1].possibleMove = true;
-        }
-        if (j - 2 == -1 || i - 2 == -1) {
-            return;
-        }
-        if (pannel.squrinfo[i - 1][j - 1].red && !pannel.squrinfo[i - 2][j - 2].blue
-                && !pannel.squrinfo[i - 2][j - 2].red) {
-            pannel.squrinfo[i - 2][j - 2].possibleMove = true;
-            if (j - 3 == -1 || i - 3 == -1) {
-                return;
+            if (pannel.squrinfo[i + (3 * rowModifier)][j + (3 * colModifier)].oppositeColor(color)) {
+                normalPattern(i + (2 * rowModifier), j + (2 * colModifier), direction, color);
             }
-            if (pannel.squrinfo[i - 3][j - 3].red) {
-                blueLeftPattern(i - 2, j - 2);
-            }
-        }
-    }
-
-    private void blueRightPattern(int i, int j) {
-        if (j == 7 || i == 0)
-            return;
-        if (!pannel.squrinfo[i - 1][j + 1].blue && !pannel.squrinfo[i - 1][j + 1].red) {
-            pannel.squrinfo[i - 1][j + 1].possibleMove = true;
-        }
-        if (j + 2 == 8 || i - 2 == -1) {
-            return;
-        }
-        if (pannel.squrinfo[i - 1][j + 1].red && !pannel.squrinfo[i - 2][j + 2].blue
-                && !pannel.squrinfo[i - 2][j + 2].red) {
-            pannel.squrinfo[i - 2][j + 2].possibleMove = true;
-            if (j + 3 == 8 || i - 3 == -1) {
-                return;
-            }
-            if (pannel.squrinfo[i - 3][j + 3].red) {
-                blueRightPattern(i - 2, j + 2);
-            }
-
         }
     }
 
