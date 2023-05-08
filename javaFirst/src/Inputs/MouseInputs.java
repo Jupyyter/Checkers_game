@@ -55,7 +55,7 @@ public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
                         disableHighlights();
                         pannel.squrinfo[i][j].highlight = true;
                         // https://cdn.discordapp.com/attachments/969231182304784446/1105212842648547478/image.png
-                        if (pannel.squrinfo[i][j].red == true && !jTurn) {// if red
+                        if (pannel.squrinfo[i][j].red == true && !jTurn) {// if red and red turn
                             // https://cdn.discordapp.com/attachments/969231182304784446/1105214773500592278/image.png
                             disablePaths();
                             if (pannel.squrinfo[i][j].king) {
@@ -70,7 +70,7 @@ public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
                             moveY = i;
                             red = true;
                             blue = false;
-                        } else if (pannel.squrinfo[i][j].blue == true && jTurn) {// if blue
+                        } else if (pannel.squrinfo[i][j].blue == true && jTurn) {// if blue and blue turn
                             // https://cdn.discordapp.com/attachments/969231182304784446/1105215063234728007/image.png
                             disablePaths();
                             if (pannel.squrinfo[i][j].king) {
