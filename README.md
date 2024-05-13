@@ -8,4 +8,4 @@ c++:
 
 java:
 -minecraft is made with it
--ME USE JAVA ME UNABLE TO UNDERSTAND POINTERS WHAT IS THAT A "&int" IM SURE I WONT EVER USE IT ANYWAY
+-scared of pointers?
