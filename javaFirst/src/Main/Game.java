@@ -36,7 +36,7 @@ public class Game implements Runnable {
 
             if (System.currentTimeMillis() - lastTimeCheck >= 1000) { // Check if it's time to print the frames per second
                 lastTimeCheck = System.currentTimeMillis(); // Update the last time check to the current time
-                System.out.println("FPS: " + outputFPS); // Print the frames per second
+                //System.out.println("FPS: " + outputFPS); // Print the frames per second
                 outputFPS = 0; // Reset the frames per second counter
             }
         }

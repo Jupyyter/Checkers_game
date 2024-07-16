@@ -13,9 +13,9 @@ import Inputs.MouseInputs;
 import java.awt.Dimension;
 
 public class Pannel extends JPanel {
-    private int firstX = 100, firstY = 100, topLeftX, topLeftY, squrDim, gamePointX, gamePointY, offset;
+    private int firstX = 100, firstY = 100, topLeftX, topLeftY, squrDim, gamePointX, gamePointY, offset,scaledWidth,scaledHeight;
     private BufferedImage checkersBorder, redSquare, blackSquare, point, highlighter, blueThing, redThing, blueKing,
-            redKing;
+            redKing, redWin, blueWin;
     private double scaling = 1.0;
     public squrInfo squrinfo[][];
     private MouseInputs mouseInputs = new MouseInputs(this);
@@ -34,6 +34,7 @@ public class Pannel extends JPanel {
             for (int j = 0; j < 8; j++) {
                 // spawn squares
                 if ((i + j) % 2 == 0) {
+                    // spawn pawns
                     if (i < 3) {
                         squrinfo[i][j].red = true;
                     } else if (i > 4) {
@@ -45,12 +46,15 @@ public class Pannel extends JPanel {
     }
 
     public void paintComponent(Graphics g) {// here we draw
-        if (redLose() || blueLose()) {
-            return;
-        }
         super.paintComponent(g);
         drawBorder(g);
         drawSquaresAndThings(g);
+        if(redLose()){
+            g.drawImage(blueWin, topLeftX, topLeftY, scaledWidth, scaledHeight, null);
+        }
+        else if(blueLose()){
+            g.drawImage(redWin, topLeftX, topLeftY, scaledWidth, scaledHeight, null);
+        }
 
     }
 
@@ -67,8 +71,8 @@ public class Pannel extends JPanel {
             // Scale based on width
             scaling = (double) getWidth() / imgWidth;
         }
-        int scaledWidth = (int) (scaling * imgWidth);
-        int scaledHeight = (int) (scaling * imgHeight);
+        scaledWidth = (int) (scaling * imgWidth);
+        scaledHeight = (int) (scaling * imgHeight);
         int x = (getWidth() - scaledWidth) / 2;
         int y = (getHeight() - scaledHeight) / 2;
         topLeftX = x;
@@ -90,11 +94,11 @@ public class Pannel extends JPanel {
                             squrDim,
                             squrDim, offset, 0);
 
-                } else if ((i + j) % 2 == 0) {// if black square
+                } else if ((i + j) % 2 == 0) {// if red square
                     drawSquareForEachCase(g, redSquare, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i,
                             squrDim,
                             squrDim, offset, 0);
-                } else {// if red square
+                } else {// if black square
                     drawSquareForEachCase(g, blackSquare, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i,
                             squrDim,
                             squrDim, offset, 0);
@@ -138,6 +142,8 @@ public class Pannel extends JPanel {
             redThing = ImageIO.read(getClass().getResourceAsStream("/imgs/redThing.png"));
             redKing = ImageIO.read(getClass().getResourceAsStream("/imgs/redKing.png"));
             highlighter = ImageIO.read(getClass().getResourceAsStream("/imgs/highlighter.png"));
+            redWin = ImageIO.read(getClass().getResourceAsStream("/imgs/redWin.png"));
+            blueWin = ImageIO.read(getClass().getResourceAsStream("/imgs/blueWin.png"));
 
         } catch (IOException e) {
             e.printStackTrace();
