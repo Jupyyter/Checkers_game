@@ -54,35 +54,28 @@ public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
                             && e.getY() <= locationY + height) {// find the square which is clicked
                         disableHighlights();
                         pannel.squrinfo[i][j].highlight = true;
-                        // https://cdn.discordapp.com/attachments/969231182304784446/1105212842648547478/image.png
                         if (pannel.squrinfo[i][j].red == true && !jTurn) {// if red
                             //can't move red if !red turn
-                            // https://cdn.discordapp.com/attachments/969231182304784446/1105214773500592278/image.png
                             disablePaths();
                             if (pannel.squrinfo[i][j].king) {
                                 kingPattern(i, j, "left", "red");
                                 kingPattern(i, j, "right", "red");
-                                // https://cdn.discordapp.com/attachments/969231182304784446/1105214387494592573/image.png
                             }
                             normalPattern(i, j, "left", "red");
                             normalPattern(i, j, "right", "red");
-                            // https://cdn.discordapp.com/attachments/969231182304784446/1105214179654254672/image.png
                             moveX = j;
                             moveY = i;
                             red = true;
                             blue = false;
                         } else if (pannel.squrinfo[i][j].blue == true && jTurn) {// if blue
                             //can't move blue if !blue turn
-                            // https://cdn.discordapp.com/attachments/969231182304784446/1105215063234728007/image.png
                             disablePaths();
                             if (pannel.squrinfo[i][j].king) {
                                 kingPattern(i, j, "left", "blue");
                                 kingPattern(i, j, "right", "blue");
-                                // https://cdn.discordapp.com/attachments/969231182304784446/1105213959868514425/image.png
                             }
                             normalPattern(i, j, "left", "blue");
                             normalPattern(i, j, "right", "blue");
-                            // https://cdn.discordapp.com/attachments/969231182304784446/1105213590459400293/image.png
                             moveX = j;
                             moveY = i;
                             red = false;
@@ -97,16 +90,12 @@ public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
                             if (red) {// if move red
                                 pannel.squrinfo[i][j].red = true;
                                 DeleteEnemy(i, j);
-                                // https://cdn.discordapp.com/attachments/969231182304784446/1105215910060511343/image.png
-                                // https://cdn.discordapp.com/attachments/969231182304784446/1105216187408863352/image.png
                             } else if (blue) {// if move blue
                                 pannel.squrinfo[i][j].blue = true;
                                 DeleteEnemy(i, j);
                             }
                             if (i == 0 || i == 7) {// promote to king if needed
                                 pannel.squrinfo[i][j].king = true;
-                                // https://cdn.discordapp.com/attachments/969231182304784446/1105216337342636232/image.png
-                                // https://cdn.discordapp.com/attachments/969231182304784446/1105216442745487441/image.png
                             }
                             if (pannel.squrinfo[moveY][moveX].king == true) {// remain king if already king
                                 pannel.squrinfo[i][j].king = true;
