@@ -26,7 +26,7 @@ public class Window extends JFrame {
         jframe.add(pannel);
 
         // Set the title of the JFrame
-        jframe.setTitle("MARIOANA EROINA COCAINA CRACK");
+        jframe.setTitle("marijuana cocaina eroina crack");
 
         // Resize the JFrame to fit its contents
         jframe.pack();

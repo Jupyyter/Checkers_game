@@ -1,6 +1,9 @@
 package Inputs;
 
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Vector;
+
 import javax.swing.event.MenuDragMouseEvent;
 import javax.swing.event.MenuDragMouseListener;
 import javax.swing.event.MouseInputListener;
@@ -16,6 +19,18 @@ public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
     boolean red = false;
     boolean blue = false;
     boolean jTurn = true;
+    ArrayList<vector> highlits = new ArrayList<>();
+    ArrayList<vector> possibleMoves = new ArrayList<>();
+
+    private class vector {
+        public int x;
+        public int y;
+        // Constructor
+        public vector(int first, int second) {
+            this.x = first;
+            this.y = second;
+        }
+    }
 
     public MouseInputs(Pannel pannel) {
         this.pannel = pannel;// getting the window on which the cursor is
@@ -53,9 +68,10 @@ public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
                     if (e.getX() >= locationX && e.getY() >= locationY && e.getX() <= locationX + width
                             && e.getY() <= locationY + height) {// find the square which is clicked
                         disableHighlights();
+                        highlits.add(new vector(j,i));
                         pannel.squrinfo[i][j].highlight = true;
                         if (pannel.squrinfo[i][j].red == true && !jTurn) {// if red
-                            //can't move red if !red turn
+                            // can't move red if !red turn
                             disablePaths();
                             if (pannel.squrinfo[i][j].king) {
                                 kingPattern(i, j, "left", "red");
@@ -68,7 +84,7 @@ public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
                             red = true;
                             blue = false;
                         } else if (pannel.squrinfo[i][j].blue == true && jTurn) {// if blue
-                            //can't move blue if !blue turn
+                            // can't move blue if !blue turn
                             disablePaths();
                             if (pannel.squrinfo[i][j].king) {
                                 kingPattern(i, j, "left", "blue");
@@ -155,6 +171,7 @@ public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
 
         if (!pannel.squrinfo[i + rowModifier][j + colModifier].blue
                 && !pannel.squrinfo[i + rowModifier][j + colModifier].red) {
+                    possibleMoves.add(new vector(i + rowModifier,j + colModifier));
             pannel.squrinfo[i + rowModifier][j + colModifier].possibleMove = true;
         }
 
@@ -166,6 +183,7 @@ public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
         if (pannel.squrinfo[i + rowModifier][j + colModifier].oppositeColor(color)
                 && !pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].blue
                 && !pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].red) {
+                    possibleMoves.add(new vector(i + (2 * rowModifier),j + (2 * colModifier)));
             pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].possibleMove = true;
 
             if (j + (3 * colModifier) < 0 || j + (3 * colModifier) > 7 || i + (3 * rowModifier) < 0
@@ -190,7 +208,8 @@ public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
 
         if (!pannel.squrinfo[i + rowModifier][j + colModifier].blue
                 && !pannel.squrinfo[i + rowModifier][j + colModifier].red) {
-            pannel.squrinfo[i + rowModifier][j + colModifier].possibleMove = true;
+                    possibleMoves.add(new vector(i + rowModifier,j + colModifier));
+                    pannel.squrinfo[i + rowModifier][j + colModifier].possibleMove = true;
         }
 
         if (j + (2 * colModifier) < 0 || j + (2 * colModifier) > 7 || i + (2 * rowModifier) < 0
@@ -201,6 +220,7 @@ public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
         if (pannel.squrinfo[i + rowModifier][j + colModifier].oppositeColor(color)
                 && !pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].blue
                 && !pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].red) {
+                    possibleMoves.add(new vector(j + (2 * colModifier),i + (2 * rowModifier)));
             pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].possibleMove = true;
 
             if (j + (3 * colModifier) < 0 || j + (3 * colModifier) > 7 || i + (3 * rowModifier) < 0
@@ -215,18 +235,14 @@ public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
     }
 
     private void disablePaths() {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                pannel.squrinfo[i][j].possibleMove = false;
-            }
+        for (vector v : possibleMoves) {
+            pannel.squrinfo[v.x][v.y].possibleMove = false;
         }
     }
 
     private void disableHighlights() {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                pannel.squrinfo[i][j].highlight = false;
-            }
+        for (vector v : highlits){
+            pannel.squrinfo[v.y][v.x].highlight = false;
         }
     }
 
