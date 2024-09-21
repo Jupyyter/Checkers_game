@@ -1,289 +1,289 @@
 package Inputs;
 
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.Vector;
-
-import javax.swing.event.MenuDragMouseEvent;
-import javax.swing.event.MenuDragMouseListener;
-import javax.swing.event.MouseInputListener;
-import javax.swing.SwingUtilities;
-
 import Main.Pannel;
-import Main.squrInfo;
+import Main.SquareInfo;
 
-public class MouseInputs implements MenuDragMouseListener, MouseInputListener {
+import java.awt.event.MouseEvent;
+import javax.swing.event.MouseInputListener;
+import java.util.logging.Logger;
+import java.util.ArrayList;
+import java.util.List;
 
-    private Pannel pannel;
-    private int moveX, moveY;// last coordinates used
-    boolean red = false;
-    boolean blue = false;
-    boolean jTurn = true;
-    ArrayList<vector> highlits = new ArrayList<>();
-    ArrayList<vector> possibleMoves = new ArrayList<>();
+public class MouseInputs implements MouseInputListener {
+    private static final Logger LOGGER = Logger.getLogger(MouseInputs.class.getName());
+    private static final int BOARD_SIZE = 8;
 
-    private class vector {
-        public int x;
-        public int y;
-        // Constructor
-        public vector(int first, int second) {
-            this.x = first;
-            this.y = second;
-        }
-    }
+    private final Pannel panel;
+    private SquareInfo.PieceColor currentTurn;
+    private int selectedRow = -1;
+    private int selectedCol = -1;
+    private boolean isCapturing = false;
+    private List<int[]> captureSequence = new ArrayList<>();
 
-    public MouseInputs(Pannel pannel) {
-        this.pannel = pannel;// getting the window on which the cursor is
-    }
-
-    @Override
-    public void mouseClicked(MouseEvent e) {
-        /*
-         */
-    }
-
-    @Override
-    public void mouseEntered(MouseEvent e) {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void mouseExited(MouseEvent e) {
-        // TODO Auto-generated method stub
-
+    public MouseInputs(Pannel panel) {
+        this.panel = panel;
+        this.currentTurn = SquareInfo.PieceColor.BLUE; // blue starts first
     }
 
     @Override
     public void mousePressed(MouseEvent e) {
-        if (SwingUtilities.isLeftMouseButton(e)) {
-            for (int i = 0; i < 8; i++) {
-                for (int j = 0; j < 8; j++) {
+        int[] boardCoordinates = getBoardCoordinates(e.getX(), e.getY());
+        if (boardCoordinates == null) {
+            return;
+        }
 
-                    int locationX = pannel.squrinfo[i][j].locationX;
-                    int locationY = pannel.squrinfo[i][j].locationY;
-                    int height = pannel.squrinfo[i][j].height;
-                    int width = pannel.squrinfo[i][j].width;
+        int row = boardCoordinates[0];
+        int col = boardCoordinates[1];
 
-                    if (e.getX() >= locationX && e.getY() >= locationY && e.getX() <= locationX + width
-                            && e.getY() <= locationY + height) {// find the square which is clicked
-                        disableHighlights();
-                        highlits.add(new vector(j,i));
-                        pannel.squrinfo[i][j].highlight = true;
-                        if (pannel.squrinfo[i][j].red == true && !jTurn) {// if red
-                            // can't move red if !red turn
-                            disablePaths();
-                            if (pannel.squrinfo[i][j].king) {
-                                kingPattern(i, j, "left", "red");
-                                kingPattern(i, j, "right", "red");
-                            }
-                            normalPattern(i, j, "left", "red");
-                            normalPattern(i, j, "right", "red");
-                            moveX = j;
-                            moveY = i;
-                            red = true;
-                            blue = false;
-                        } else if (pannel.squrinfo[i][j].blue == true && jTurn) {// if blue
-                            // can't move blue if !blue turn
-                            disablePaths();
-                            if (pannel.squrinfo[i][j].king) {
-                                kingPattern(i, j, "left", "blue");
-                                kingPattern(i, j, "right", "blue");
-                            }
-                            normalPattern(i, j, "left", "blue");
-                            normalPattern(i, j, "right", "blue");
-                            moveX = j;
-                            moveY = i;
-                            red = false;
-                            blue = true;
-                        } else if (pannel.squrinfo[i][j].possibleMove == true) {// if move
-                            if (jTurn) {// switch turns
-                                jTurn = false;
-                            } else {
-                                jTurn = true;
-                            }
-                            disablePaths();
-                            if (red) {// if move red
-                                pannel.squrinfo[i][j].red = true;
-                                DeleteEnemy(i, j);
-                            } else if (blue) {// if move blue
-                                pannel.squrinfo[i][j].blue = true;
-                                DeleteEnemy(i, j);
-                            }
-                            if (i == 0 || i == 7) {// promote to king if needed
-                                pannel.squrinfo[i][j].king = true;
-                            }
-                            if (pannel.squrinfo[moveY][moveX].king == true) {// remain king if already king
-                                pannel.squrinfo[i][j].king = true;
-                                blue = true;
-                                pannel.squrinfo[moveY][moveX].king = false;
-                            }
-                        } else {
-                            disablePaths();
-                        }
-                    }
+        handleSquareClick(row, col);
+    }
+
+    private int[] getBoardCoordinates(int x, int y) {
+        SquareInfo[][] squareInfo = panel.getSquareInfo();
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            for (int col = 0; col < BOARD_SIZE; col++) {
+                SquareInfo square = squareInfo[row][col];
+                if (x >= square.getLocationX() && x < square.getLocationX() + square.getWidth() &&
+                    y >= square.getLocationY() && y < square.getLocationY() + square.getHeight()) {
+                    return new int[]{row, col};
                 }
+            }
+        }
+        return null;
+    }
+
+    private void handleSquareClick(int row, int col) {
+        SquareInfo[][] squareInfo = panel.getSquareInfo();
+        SquareInfo clickedSquare = squareInfo[row][col];
+
+        // Clear previous highlights
+        clearHighlights();
+
+        // Highlight the clicked square
+        clickedSquare.setHighlighted(true);
+
+        if (selectedRow == -1 && selectedCol == -1) {
+            // No piece selected yet
+            if (clickedSquare.getPieceColor() == currentTurn) {
+                selectPiece(row, col);
             }
         } else {
-            disableHighlights();
-            disablePaths();
+            // A piece is already selected
+            if (clickedSquare.isPossibleMove()) {
+                movePiece(row, col);
+            } else if (clickedSquare.getPieceColor() == currentTurn) {
+                // Selecting a different piece of the same color
+                selectPiece(row, col);
+            } else {
+                // Clicking an invalid square, deselect the current piece
+                deselectPiece();
+            }
+        }
+
+        panel.repaint();
+    }
+
+
+
+    private void selectPiece(int row, int col) {
+        deselectPiece();
+        selectedRow = row;
+        selectedCol = col;
+        panel.getSquareInfo()[row][col].setHighlighted(true);
+        calculatePossibleMoves(row, col);
+    }
+    private void clearHighlights() {
+        SquareInfo[][] squareInfo = panel.getSquareInfo();
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                squareInfo[i][j].setHighlighted(false);
+            }
+        }
+    }
+    private void deselectPiece() {
+        if (selectedRow != -1 && selectedCol != -1) {
+            clearPossibleMoves();
+            selectedRow = -1;
+            selectedCol = -1;
         }
     }
 
-    private void DeleteEnemy(int i, int j) {// the only way to destroy fuckers
-        if (i < moveY) {
-            if (j < moveX) {
-                for (int o = moveX, p = moveY; j < o; o--, p--) {// destroy enemy
-                    pannel.squrinfo[p][o].red = false;
-                    pannel.squrinfo[p][o].blue = false;
+    private void calculatePossibleMoves(int row, int col) {
+        clearPossibleMoves();
+        SquareInfo[][] squareInfo = panel.getSquareInfo();
+        SquareInfo currentSquare = squareInfo[row][col];
+        boolean isKing = currentSquare.isKing();
+        SquareInfo.PieceColor color = currentSquare.getPieceColor();
+
+        boolean captureAvailable = checkCaptures(row, col, color, isKing);
+
+        if (!captureAvailable) {
+            checkRegularMoves(row, col, color, isKing);
+        }
+
+        // Even if no moves are available, keep the piece selected
+    }
+    private boolean hasAnyPossibleMoves() {
+        SquareInfo[][] squareInfo = panel.getSquareInfo();
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                if (squareInfo[i][j].isPossibleMove()) {
+                    return true;
                 }
             }
-            if (j > moveX) {
-                for (int o = moveX, p = moveY; j > o; o++, p--) {// destroy enemy
-                    pannel.squrinfo[p][o].red = false;
-                    pannel.squrinfo[p][o].blue = false;
+        }
+        return false;
+    }
+    private boolean checkCaptures(int row, int col, SquareInfo.PieceColor color, boolean isKing) {
+        boolean captureAvailable = false;
+        int[][] directions = getDirections(color, isKing);
+
+        for (int[] dir : directions) {
+            int newRow = row + dir[0];
+            int newCol = col + dir[1];
+            int jumpRow = row + 2 * dir[0];
+            int jumpCol = col + 2 * dir[1];
+
+            if (isValidPosition(jumpRow, jumpCol)) {
+                SquareInfo middleSquare = panel.getSquareInfo()[newRow][newCol];
+                SquareInfo jumpSquare = panel.getSquareInfo()[jumpRow][jumpCol];
+
+                if (middleSquare.getPieceColor() == getOppositeColor(color) &&
+                    jumpSquare.getPieceColor() == SquareInfo.PieceColor.NONE) {
+                    jumpSquare.setPossibleMove(true);
+                    captureAvailable = true;
                 }
             }
+        }
+
+        return captureAvailable;
+    }
+
+    private void checkRegularMoves(int row, int col, SquareInfo.PieceColor color, boolean isKing) {
+        int[][] directions = getDirections(color, isKing);
+
+        for (int[] dir : directions) {
+            int newRow = row + dir[0];
+            int newCol = col + dir[1];
+
+            if (isValidPosition(newRow, newCol)) {
+                SquareInfo newSquare = panel.getSquareInfo()[newRow][newCol];
+                if (newSquare.getPieceColor() == SquareInfo.PieceColor.NONE) {
+                    newSquare.setPossibleMove(true);
+                }
+            }
+        }
+    }
+
+    private void movePiece(int newRow, int newCol) {
+        SquareInfo[][] squareInfo = panel.getSquareInfo();
+        SquareInfo oldSquare = squareInfo[selectedRow][selectedCol];
+        SquareInfo newSquare = squareInfo[newRow][newCol];
+    
+        // Move the piece
+        newSquare.setPieceColor(oldSquare.getPieceColor());
+        newSquare.setKing(oldSquare.isKing());
+        oldSquare.setPieceColor(SquareInfo.PieceColor.NONE);
+        oldSquare.setKing(false);
+    
+        // Check if the piece should become a king
+        if (newRow == 0 && currentTurn == SquareInfo.PieceColor.BLUE) {
+            newSquare.setKing(true);
+        } else if (newRow == BOARD_SIZE - 1 && currentTurn == SquareInfo.PieceColor.RED) {
+            newSquare.setKing(true);
+        }
+    
+        // Handle captures
+        boolean captureOccurred = false;
+        if (Math.abs(newRow - selectedRow) == 2) {
+            int capturedRow = (newRow + selectedRow) / 2;
+            int capturedCol = (newCol + selectedCol) / 2;
+            squareInfo[capturedRow][capturedCol].setPieceColor(SquareInfo.PieceColor.NONE);
+            squareInfo[capturedRow][capturedCol].setKing(false);
+            captureOccurred = true;
+            captureSequence.add(new int[]{newRow, newCol});
+        }
+    
+        // Check for additional captures
+        clearPossibleMoves();
+        boolean additionalCaptures = checkCaptures(newRow, newCol, currentTurn, newSquare.isKing());
+    
+        if (captureOccurred && additionalCaptures) {
+            isCapturing = true;
+            panel.getSquareInfo()[newRow][newCol].setHighlighted(true);
+            selectedRow = newRow;
+            selectedCol = newCol;
         } else {
-            if (j < moveX) {
-                for (int o = moveX, p = moveY; j < o; o--, p++) {// destroy enemy
-                    pannel.squrinfo[p][o].red = false;
-                    pannel.squrinfo[p][o].blue = false;
+            // End of turn
+            if (captureSequence.size() > 0) {
+                // Clear all intermediate positions
+                for (int i = 0; i < captureSequence.size() - 1; i++) {
+                    int[] pos = captureSequence.get(i);
+                    squareInfo[pos[0]][pos[1]].setPieceColor(SquareInfo.PieceColor.NONE);
+                    squareInfo[pos[0]][pos[1]].setKing(false);
                 }
+                // The final position is already set correctly, no need to change it
             }
-            if (j > moveX) {
-                for (int o = moveX, p = moveY; j > o; o++, p++) {// destroy enemy
-                    pannel.squrinfo[p][o].red = false;
-                    pannel.squrinfo[p][o].blue = false;
-                }
-            }
+            // Switch turns
+            currentTurn = getOppositeColor(currentTurn);
+            deselectPiece();
+            captureSequence.clear(); // Clear the capture sequence at the end of the turn
         }
     }
 
-    private void kingPattern(int i, int j, String direction, String color) {
-        int rowModifier = color.equals("blue") ? 1 : -1;
-        int colModifier = direction.equals("left") ? -1 : 1;
-
-        if ((j == 0 && direction.equals("left")) || (j == 7 && direction.equals("right"))
-                || (i == 0 && color.equals("red")) || (i == 7 && color.equals("blue"))) {
-            return;
-        }
-
-        if (!pannel.squrinfo[i + rowModifier][j + colModifier].blue
-                && !pannel.squrinfo[i + rowModifier][j + colModifier].red) {
-                    possibleMoves.add(new vector(i + rowModifier,j + colModifier));
-            pannel.squrinfo[i + rowModifier][j + colModifier].possibleMove = true;
-        }
-
-        if (j + (2 * colModifier) < 0 || j + (2 * colModifier) > 7 || i + (2 * rowModifier) < 0
-                || i + (2 * rowModifier) > 7) {
-            return;
-        }
-
-        if (pannel.squrinfo[i + rowModifier][j + colModifier].oppositeColor(color)
-                && !pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].blue
-                && !pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].red) {
-                    possibleMoves.add(new vector(i + (2 * rowModifier),j + (2 * colModifier)));
-            pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].possibleMove = true;
-
-            if (j + (3 * colModifier) < 0 || j + (3 * colModifier) > 7 || i + (3 * rowModifier) < 0
-                    || i + (3 * rowModifier) > 7) {
-                return;
-            }
-
-            if (pannel.squrinfo[i + (3 * rowModifier)][j + (3 * colModifier)].oppositeColor(color)) {
-                kingPattern(i + (2 * rowModifier), j + (2 * colModifier), direction, color);
+    private void clearPossibleMoves() {
+        SquareInfo[][] squareInfo = panel.getSquareInfo();
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                squareInfo[i][j].setPossibleMove(false);
             }
         }
     }
-
-    private void normalPattern(int i, int j, String direction, String color) {
-        int rowModifier = color.equals("blue") ? -1 : 1;
-        int colModifier = direction.equals("left") ? 1 : -1;
-
-        if ((j == 7 && direction.equals("left")) || (j == 0 && direction.equals("right"))
-                || (i == 7 && color.equals("red")) || (i == 0 && color.equals("blue"))) {
-            return;
-        }
-
-        if (!pannel.squrinfo[i + rowModifier][j + colModifier].blue
-                && !pannel.squrinfo[i + rowModifier][j + colModifier].red) {
-                    possibleMoves.add(new vector(i + rowModifier,j + colModifier));
-                    pannel.squrinfo[i + rowModifier][j + colModifier].possibleMove = true;
-        }
-
-        if (j + (2 * colModifier) < 0 || j + (2 * colModifier) > 7 || i + (2 * rowModifier) < 0
-                || i + (2 * rowModifier) > 7) {
-            return;
-        }
-
-        if (pannel.squrinfo[i + rowModifier][j + colModifier].oppositeColor(color)
-                && !pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].blue
-                && !pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].red) {
-                    possibleMoves.add(new vector(j + (2 * colModifier),i + (2 * rowModifier)));
-            pannel.squrinfo[i + (2 * rowModifier)][j + (2 * colModifier)].possibleMove = true;
-
-            if (j + (3 * colModifier) < 0 || j + (3 * colModifier) > 7 || i + (3 * rowModifier) < 0
-                    || i + (3 * rowModifier) > 7) {
-                return;
-            }
-
-            if (pannel.squrinfo[i + (3 * rowModifier)][j + (3 * colModifier)].oppositeColor(color)) {
-                normalPattern(i + (2 * rowModifier), j + (2 * colModifier), direction, color);
-            }
+    private int[][] getDirections(SquareInfo.PieceColor color, boolean isKing) {
+        if (isKing) {
+            return new int[][]{{-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
+        } else if (color == SquareInfo.PieceColor.RED) {
+            return new int[][]{{1, -1}, {1, 1}};
+        } else {
+            return new int[][]{{-1, -1}, {-1, 1}};
         }
     }
-
-    private void disablePaths() {
-        for (vector v : possibleMoves) {
-            pannel.squrinfo[v.x][v.y].possibleMove = false;
-        }
+    private boolean isValidPosition(int row, int col) {
+        return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
     }
 
-    private void disableHighlights() {
-        for (vector v : highlits){
-            pannel.squrinfo[v.y][v.x].highlight = false;
-        }
+    private SquareInfo.PieceColor getOppositeColor(SquareInfo.PieceColor color) {
+        return (color == SquareInfo.PieceColor.RED) ? SquareInfo.PieceColor.BLUE : SquareInfo.PieceColor.RED;
+    }
+
+    // Other mouse event methods (unchanged)
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        LOGGER.fine("Mouse clicked at: " + e.getPoint());
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        // TODO Auto-generated method stub
+        LOGGER.fine("Mouse released at: " + e.getPoint());
+    }
 
+    @Override
+    public void mouseEntered(MouseEvent e) {
+        LOGGER.fine("Mouse entered at: " + e.getPoint());
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+        LOGGER.fine("Mouse exited at: " + e.getPoint());
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
-
+        LOGGER.fine("Mouse dragged at: " + e.getPoint());
     }
 
     @Override
     public void mouseMoved(MouseEvent e) {
-
+        LOGGER.fine("Mouse moved at: " + e.getPoint());
     }
-
-    @Override
-    public void menuDragMouseDragged(MenuDragMouseEvent e) {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void menuDragMouseEntered(MenuDragMouseEvent e) {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void menuDragMouseExited(MenuDragMouseEvent e) {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void menuDragMouseReleased(MenuDragMouseEvent e) {
-        // TODO Auto-generated method stub
-
-    }
-
 }

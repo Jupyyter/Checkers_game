@@ -1,200 +1,202 @@
 package Main;
 
 import java.awt.Graphics;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.awt.Color;
 import java.awt.image.BufferedImage;
-
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import Inputs.MouseInputs;
-import java.awt.Dimension;
 
 public class Pannel extends JPanel {
-    private int firstX = 100, firstY = 100, topLeftX, topLeftY, squrDim, gamePointX, gamePointY, offset,scaledWidth,scaledHeight;
-    private BufferedImage checkersBorder, redSquare, blackSquare, point, highlighter, blueThing, redThing, blueKing,
-            redKing, redWin, blueWin;
+    private static final int BOARD_SIZE = 8;
+    private static final int INITIAL_RED_ROWS = 3;
+    private static final int INITIAL_BLUE_ROWS = 3;
+
+    private int topLeftX, topLeftY, squareDim, gamePointX, gamePointY, offset, scaledWidth, scaledHeight;
+    private BufferedImage checkersBorder, redSquare, blackSquare, point, highlighter, bluePiece, redPiece, blueKing, redKing, redWin, blueWin;
+    private BufferedImage yellowHighlight, greenHighlight;
     private double scaling = 1.0;
-    public squrInfo squrinfo[][];
-    private MouseInputs mouseInputs = new MouseInputs(this);
+    private SquareInfo[][] squareInfo;
+    private MouseInputs mouseInputs;
 
     public Pannel() {
-        addMouseListener(mouseInputs);// checking for mouse inputs when cursor in the game panel
+        mouseInputs = new MouseInputs(this);
+        addMouseListener(mouseInputs);
         addMouseMotionListener(mouseInputs);
-        importImgs();
-        squrinfo = new squrInfo[8][8];
-        for (int i = 0; i < squrinfo.length; i++) {
-            for (int j = 0; j < squrinfo[i].length; j++) {
-                squrinfo[i][j] = new squrInfo();
-            }
-        }
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                // spawn squares
+        importImages();
+        initializeBoard();
+        setOpaque(true);  // Optimization: Avoid unnecessary repainting of underlying components
+    }
+
+    private void initializeBoard() {
+        squareInfo = new SquareInfo[BOARD_SIZE][BOARD_SIZE];
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                squareInfo[i][j] = new SquareInfo();
                 if ((i + j) % 2 == 0) {
-                    // spawn pawns
-                    if (i < 3) {
-                        squrinfo[i][j].red = true;
-                    } else if (i > 4) {
-                        squrinfo[i][j].blue = true;
+                    if (i < INITIAL_RED_ROWS) {
+                        squareInfo[i][j].setPieceColor(SquareInfo.PieceColor.RED);
+                    } else if (i >= BOARD_SIZE - INITIAL_BLUE_ROWS) {
+                        squareInfo[i][j].setPieceColor(SquareInfo.PieceColor.BLUE);
                     }
                 }
             }
         }
     }
 
-    public void paintComponent(Graphics g) {// here we draw
+    @Override
+    protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        drawBorder(g);
-        drawSquaresAndThings(g);
-        if(redLose()){
-            g.drawImage(blueWin, topLeftX, topLeftY, scaledWidth, scaledHeight, null);
-        }
-        else if(blueLose()){
-            g.drawImage(redWin, topLeftX, topLeftY, scaledWidth, scaledHeight, null);
-        }
-
+        
+        calculateScalingAndPositions();
+        drawSquaresAndPieces(g);
+        drawWinnerIfGameOver(g);
+        drawBorder(g);  // Draw border last so it appears on top
     }
 
-    private void drawBorder(Graphics g) {
-        // scale checkersMapBorder to fit window
+    private void calculateScalingAndPositions() {
         int imgWidth = checkersBorder.getWidth();
         int imgHeight = checkersBorder.getHeight();
         double panelAspectRatio = (double) getWidth() / getHeight();
         double imgAspectRatio = (double) imgWidth / imgHeight;
+        
         if (panelAspectRatio > imgAspectRatio) {
-            // Scale based on height
             scaling = (double) getHeight() / imgHeight;
         } else {
-            // Scale based on width
             scaling = (double) getWidth() / imgWidth;
         }
-        scaledWidth = (int) (scaling * imgWidth);
-        scaledHeight = (int) (scaling * imgHeight);
-        int x = (getWidth() - scaledWidth) / 2;
-        int y = (getHeight() - scaledHeight) / 2;
-        topLeftX = x;
-        topLeftY = y;
-        g.drawImage(checkersBorder, x, y, scaledWidth, scaledHeight, null);
-
+        
+        scaledWidth = (int) Math.ceil(scaling * imgWidth);
+        scaledHeight = (int) Math.ceil(scaling * imgHeight);
+        topLeftX = (getWidth() - scaledWidth) / 2;
+        topLeftY = (getHeight() - scaledHeight) / 2;
+        
+        gamePointX = topLeftX + (int) (5 * scaling);
+        gamePointY = topLeftY + (int) (5 * scaling);
+        squareDim = (int) (redSquare.getWidth() * scaling);
+        offset = scaledWidth - (10 * (int)scaling) - (squareDim * BOARD_SIZE);
     }
 
-    private void drawSquaresAndThings(Graphics g) {
-        gamePointX = topLeftX + (int) (5 * scaling);
-        gamePointY = topLeftY + (int) (5 * scaling);// the 0,0 of the checkers map
-        squrDim = (int) (redSquare.getWidth() * scaling);// squares dimention based on resolution
-        int thingDim = (int) (blueThing.getWidth() * scaling);
-        offset = (int) (checkersBorder.getWidth() * scaling - (int) (10 * scaling) - (int) (squrDim * 8));
-        for (int i = 0; i < 8; i++) {// spawn squares
-            for (int j = 0; j < 8; j++) {
-                if (squrinfo[i][j].highlight == true) {// if highlight square
-                    drawSquareForEachCase(g, highlighter, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i,
-                            squrDim,
-                            squrDim, offset, 0);
+    private void drawBorder(Graphics g) {
+        g.drawImage(checkersBorder, topLeftX, topLeftY, scaledWidth, scaledHeight, null);
+    }
 
-                } else if ((i + j) % 2 == 0) {// if red square
-                    drawSquareForEachCase(g, redSquare, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i,
-                            squrDim,
-                            squrDim, offset, 0);
-                } else {// if black square
-                    drawSquareForEachCase(g, blackSquare, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i,
-                            squrDim,
-                            squrDim, offset, 0);
-                }
-                squrinfo[i][j].locationX = gamePointX + squrDim * j;
-                squrinfo[i][j].locationY = gamePointY + squrDim * i;
-                // draw the things
-                if (squrinfo[i][j].blue == true && squrinfo[i][j].red == false) {
-                    if (squrinfo[i][j].king) {
-                        g.drawImage(blueKing, gamePointX + thingDim * j, gamePointY + thingDim * i, thingDim, thingDim,
-                                null);
-                    } else {
-                        g.drawImage(blueThing, gamePointX + thingDim * j, gamePointY + thingDim * i, thingDim, thingDim,
-                                null);
-                    }
-                } else if (squrinfo[i][j].blue == false && squrinfo[i][j].red == true) {
-                    if (squrinfo[i][j].king) {
-                        g.drawImage(redKing, gamePointX + thingDim * j, gamePointY + thingDim * i, thingDim, thingDim,
-                                null);
-                    } else {
-                        g.drawImage(redThing, gamePointX + thingDim * j, gamePointY + thingDim * i, thingDim, thingDim,
-                                null);
-                    }
-                }
-                if (squrinfo[i][j].possibleMove == true) {// if possible move on a square
-                    g.drawImage(point, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim, squrDim,
-                            null);
-                }
+    private void drawSquaresAndPieces(Graphics g) {
+        int pieceDim = (int) (bluePiece.getWidth() * scaling);
+
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                int x = gamePointX + squareDim * j;
+                int y = gamePointY + squareDim * i;
+                
+                drawSquare(g, i, j, x, y);
+                drawHighlight(g, i, j, x, y);
+                drawPiece(g, i, j, x, y, pieceDim);
+                drawPossibleMove(g, i, j, x, y);
+
+                updateSquareInfo(i, j, x, y);
             }
         }
     }
 
-    private void importImgs() {
+    private void drawSquare(Graphics g, int i, int j, int x, int y) {
+        BufferedImage squareImage = ((i + j) % 2 == 0) ? redSquare : blackSquare;
+        int width = (j == BOARD_SIZE - 1) ? squareDim + offset : squareDim;
+        int height = (i == BOARD_SIZE - 1) ? squareDim + offset : squareDim;
+        g.drawImage(squareImage, x, y, width, height, null);
+    }
+
+    private void drawHighlight(Graphics g, int i, int j, int x, int y) {
+        SquareInfo square = squareInfo[i][j];
+        if (square.isHighlighted()) {
+            BufferedImage highlightImage = square.getPieceColor() != SquareInfo.PieceColor.NONE ? yellowHighlight : greenHighlight;
+            g.drawImage(highlightImage, x, y, squareDim, squareDim, null);
+        }
+    }
+
+    private void drawPiece(Graphics g, int i, int j, int x, int y, int pieceDim) {
+        SquareInfo square = squareInfo[i][j];
+        if (square.getPieceColor() == SquareInfo.PieceColor.RED) {
+            g.drawImage(square.isKing() ? redKing : redPiece, x, y, pieceDim, pieceDim, null);
+        } else if (square.getPieceColor() == SquareInfo.PieceColor.BLUE) {
+            g.drawImage(square.isKing() ? blueKing : bluePiece, x, y, pieceDim, pieceDim, null);
+        }
+    }
+
+    private void drawPossibleMove(Graphics g, int i, int j, int x, int y) {
+        SquareInfo square = squareInfo[i][j];
+        if (square.isPossibleMove()) {
+            g.drawImage(point, x, y, squareDim, squareDim, null);
+        }
+    }
+
+    private void updateSquareInfo(int i, int j, int x, int y) {
+        squareInfo[i][j].setLocationX(x);
+        squareInfo[i][j].setLocationY(y);
+        squareInfo[i][j].setWidth(squareDim + (j == BOARD_SIZE - 1 ? offset : 0));
+        squareInfo[i][j].setHeight(squareDim + (i == BOARD_SIZE - 1 ? offset : 0));
+    }
+
+    private void drawWinnerIfGameOver(Graphics g) {
+        if (isRedLose()) {
+            g.drawImage(blueWin, topLeftX, topLeftY, scaledWidth, scaledHeight, null);
+        } else if (isBlueLose()) {
+            g.drawImage(redWin, topLeftX, topLeftY, scaledWidth, scaledHeight, null);
+        }
+    }
+
+    private void importImages() {
         try {
             checkersBorder = ImageIO.read(getClass().getResourceAsStream("/imgs/checkersBorder.png"));
             redSquare = ImageIO.read(getClass().getResourceAsStream("/imgs/redSquare.png"));
             blackSquare = ImageIO.read(getClass().getResourceAsStream("/imgs/blackSquare.png"));
             point = ImageIO.read(getClass().getResourceAsStream("/imgs/point.png"));
-            blueThing = ImageIO.read(getClass().getResourceAsStream("/imgs/blueThing.png"));
+            bluePiece = ImageIO.read(getClass().getResourceAsStream("/imgs/blueThing.png"));
             blueKing = ImageIO.read(getClass().getResourceAsStream("/imgs/blueKing.png"));
-            redThing = ImageIO.read(getClass().getResourceAsStream("/imgs/redThing.png"));
+            redPiece = ImageIO.read(getClass().getResourceAsStream("/imgs/redThing.png"));
             redKing = ImageIO.read(getClass().getResourceAsStream("/imgs/redKing.png"));
             highlighter = ImageIO.read(getClass().getResourceAsStream("/imgs/highlighter.png"));
             redWin = ImageIO.read(getClass().getResourceAsStream("/imgs/redWin.png"));
             blueWin = ImageIO.read(getClass().getResourceAsStream("/imgs/blueWin.png"));
-
+            yellowHighlight = ImageIO.read(getClass().getResourceAsStream("/imgs/yellowHighlight.png"));
+            greenHighlight = ImageIO.read(getClass().getResourceAsStream("/imgs/greenHighlight.png"));
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void drawSquare(Graphics g, BufferedImage image, int i, int j, int x, int y, int width, int height,
-            int offsetWidth, int offsetHeight) {
-        g.drawImage(image, x, y, width + offsetWidth, height + offsetHeight, null);
-        squrinfo[i][j].width = width + offsetWidth;
-        squrinfo[i][j].height = height + offsetHeight;
-    }
-
-    private void drawSquareForEachCase(Graphics g, BufferedImage image, int i, int j, int x, int y, int width,
-            int height,
-            int offsetWidth, int offsetHeight) {
-        if (i == 7 && j != 7) {// down offset
-            drawSquare(g, image, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim,
-                    squrDim, 0, offset);
-        } else if (j == 7 && i != 7) {// right offset
-            drawSquare(g, image, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim,
-                    squrDim, offset, 0);
-        }
-        if (j == 7 && i == 7) {// down right offset
-            drawSquare(g, image, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim,
-                    squrDim, offset, offset);
-        } else {// default
-            drawSquare(g, image, i, j, gamePointX + squrDim * j, gamePointY + squrDim * i, squrDim,
-                    squrDim, 0, 0);
+    public void clearPossibleMoves() {
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                squareInfo[i][j].setPossibleMove(false);
+            }
         }
     }
 
-    private boolean redLose() {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                if (squrinfo[i][j].red == true) {
-                    return false;
+    private boolean isRedLose() {
+        return !hasPiecesOfColor(SquareInfo.PieceColor.RED);
+    }
+
+    private boolean isBlueLose() {
+        return !hasPiecesOfColor(SquareInfo.PieceColor.BLUE);
+    }
+
+    private boolean hasPiecesOfColor(SquareInfo.PieceColor color) {
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                if (squareInfo[i][j].getPieceColor() == color) {
+                    return true;
                 }
             }
         }
-        return true;
+        return false;
     }
 
-    private boolean blueLose() {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                if (squrinfo[i][j].blue == true) {
-                    return false;
-                }
-            }
-        }
-        return true;
+    public SquareInfo[][] getSquareInfo() {
+        return squareInfo;
+    }
+
+    public void setSquareInfo(SquareInfo[][] squareInfo) {
+        this.squareInfo = squareInfo;
     }
 }
