@@ -1,8 +1,10 @@
 package Inputs;
 
-import Main.Pannel;
+import Main.Panel;
 import Main.SquareInfo;
 
+import java.awt.Cursor;
+import java.awt.Rectangle; // Add this import
 import java.awt.event.MouseEvent;
 import javax.swing.event.MouseInputListener;
 import java.util.logging.Logger;
@@ -13,22 +15,45 @@ public class MouseInputs implements MouseInputListener {
     private static final Logger LOGGER = Logger.getLogger(MouseInputs.class.getName());
     private static final int BOARD_SIZE = 8;
 
-    private final Pannel panel;
+    private final Panel panel;
     private SquareInfo.PieceColor currentTurn;
     private int selectedRow = -1;
     private int selectedCol = -1;
     private boolean isCapturing = false;
     private List<int[]> captureSequence = new ArrayList<>();
 
-    public MouseInputs(Pannel panel) {
+    public MouseInputs(Panel panel) {
         this.panel = panel;
-        this.currentTurn = SquareInfo.PieceColor.BLUE; // blue starts first
-        panel.setCurrentTurn("BLUE"); // Set initial turn on the panel
-        checkForAvailableMoves(); // Check for available moves at the start of the game
+        this.currentTurn = SquareInfo.PieceColor.BLUE;
+        panel.setCurrentTurn("BLUE");
+        checkForAvailableMoves();
     }
 
     @Override
     public void mousePressed(MouseEvent e) {
+        Rectangle endTurnButton = panel.getEndTurnButton();
+        Rectangle playAgainButton = panel.getPlayAgainButton();
+        Rectangle backToMenuButton = panel.getBackToMenuButton();
+
+        // Handle button clicks
+        if (panel.isTurnMoved() && !panel.isGameOver() && endTurnButton.contains(e.getPoint())) {
+            handleEndTurnClick();
+            return;
+        }
+
+        if (panel.isGameOver() && playAgainButton.contains(e.getPoint())) {
+            panel.restartGame();
+            return;
+        }
+
+        if (backToMenuButton.contains(e.getPoint())) {
+            if (panel.backToMenuAction != null) {
+                panel.backToMenuAction.run();
+            }
+            return;
+        }
+
+        // Handle game board clicks
         int[] boardCoordinates = getBoardCoordinates(e.getX(), e.getY());
         if (boardCoordinates == null) {
             return;
@@ -39,15 +64,30 @@ public class MouseInputs implements MouseInputListener {
 
         handleSquareClick(row, col);
     }
+    
 
+    private void handleEndTurnClick() {
+        // End the current turn
+        currentTurn = getOppositeColor(currentTurn);
+        panel.setCurrentTurn(currentTurn == SquareInfo.PieceColor.BLUE ? "BLUE" : "RED");
+        panel.setTurnMoved(false);
+        isCapturing = false;
+        captureSequence.clear();
+        deselectPiece();
+        checkForAvailableMoves();
+    
+        // Reset cursor and hover state
+        panel.setCursor(Cursor.getDefaultCursor());
+        panel.setEndTurnButtonHovered(false);
+    }
     private int[] getBoardCoordinates(int x, int y) {
         SquareInfo[][] squareInfo = panel.getSquareInfo();
         for (int row = 0; row < BOARD_SIZE; row++) {
             for (int col = 0; col < BOARD_SIZE; col++) {
                 SquareInfo square = squareInfo[row][col];
                 if (x >= square.getLocationX() && x < square.getLocationX() + square.getWidth() &&
-                    y >= square.getLocationY() && y < square.getLocationY() + square.getHeight()) {
-                    return new int[]{row, col};
+                        y >= square.getLocationY() && y < square.getLocationY() + square.getHeight()) {
+                    return new int[] { row, col };
                 }
             }
         }
@@ -65,7 +105,8 @@ public class MouseInputs implements MouseInputListener {
         clickedSquare.setHighlighted(true);
 
         if (isCapturing) {
-            // If we're in the middle of a capture sequence, only allow moves for the capturing piece
+            // If we're in the middle of a capture sequence, only allow moves for the
+            // capturing piece
             if (row == selectedRow && col == selectedCol) {
                 // Clicked on the capturing piece, show possible moves
                 calculatePossibleMoves(row, col);
@@ -152,7 +193,7 @@ public class MouseInputs implements MouseInputListener {
                 SquareInfo jumpSquare = panel.getSquareInfo()[jumpRow][jumpCol];
 
                 if (middleSquare.getPieceColor() == getOppositeColor(color) &&
-                    jumpSquare.getPieceColor() == SquareInfo.PieceColor.NONE) {
+                        jumpSquare.getPieceColor() == SquareInfo.PieceColor.NONE) {
                     jumpSquare.setPossibleMove(true);
                     captureAvailable = true;
                 }
@@ -204,20 +245,23 @@ public class MouseInputs implements MouseInputListener {
             squareInfo[capturedRow][capturedCol].setPieceColor(SquareInfo.PieceColor.NONE);
             squareInfo[capturedRow][capturedCol].setKing(false);
             captureOccurred = true;
-            captureSequence.add(new int[]{newRow, newCol});
+            captureSequence.add(new int[] { newRow, newCol });
         }
+
+        // Set turnMoved to true after a successful move
+        panel.setTurnMoved(true);
 
         // Check for additional captures
         clearPossibleMoves();
         boolean additionalCaptures = checkCaptures(newRow, newCol, currentTurn, newSquare.isKing());
 
         if (captureOccurred && additionalCaptures) {
+            // Continue the current turn for additional captures
             isCapturing = true;
             panel.getSquareInfo()[newRow][newCol].setHighlighted(true);
             selectedRow = newRow;
             selectedCol = newCol;
         } else {
-            // End of turn
             if (captureSequence.size() > 0) {
                 // Clear all intermediate positions
                 for (int i = 0; i < captureSequence.size() - 1; i++) {
@@ -226,15 +270,17 @@ public class MouseInputs implements MouseInputListener {
                     squareInfo[pos[0]][pos[1]].setKing(false);
                 }
             }
-            // Switch turns
+
             currentTurn = getOppositeColor(currentTurn);
-            panel.setCurrentTurn(currentTurn == SquareInfo.PieceColor.BLUE ? "BLUE" : "RED"); // Update turn indicator
+            panel.setCurrentTurn(currentTurn == SquareInfo.PieceColor.BLUE ? "BLUE" : "RED");
             deselectPiece();
-            captureSequence.clear(); // Clear the capture sequence at the end of the turn
-            isCapturing = false; // Reset the capturing flag
-            
+            captureSequence.clear();
+            isCapturing = false;
+            panel.setTurnMoved(false);
+
             // Check for available moves for the next player
             checkForAvailableMoves();
+
         }
     }
 
@@ -249,11 +295,11 @@ public class MouseInputs implements MouseInputListener {
 
     private int[][] getDirections(SquareInfo.PieceColor color, boolean isKing) {
         if (isKing) {
-            return new int[][]{{-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
+            return new int[][] { { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 } };
         } else if (color == SquareInfo.PieceColor.RED) {
-            return new int[][]{{1, -1}, {1, 1}};
+            return new int[][] { { 1, -1 }, { 1, 1 } };
         } else {
-            return new int[][]{{-1, -1}, {-1, 1}};
+            return new int[][] { { -1, -1 }, { -1, 1 } };
         }
     }
 
@@ -286,13 +332,16 @@ public class MouseInputs implements MouseInputListener {
                                 break;
                             }
                         }
-                        if (hasAvailableMoves) break;
+                        if (hasAvailableMoves)
+                            break;
                     }
                     clearPossibleMoves();
                 }
-                if (hasAvailableMoves) break;
+                if (hasAvailableMoves)
+                    break;
             }
-            if (hasAvailableMoves) break;
+            if (hasAvailableMoves)
+                break;
         }
 
         if (!hasAvailableMoves) {
@@ -310,7 +359,11 @@ public class MouseInputs implements MouseInputListener {
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        LOGGER.fine("Mouse released at: " + e.getPoint());
+        // Also reset cursor on mouse release, just to be safe
+        if (!panel.getEndTurnButton().contains(e.getPoint())) {
+            panel.setCursor(Cursor.getDefaultCursor());
+            panel.setEndTurnButtonHovered(false);
+        }
     }
 
     @Override
@@ -330,6 +383,39 @@ public class MouseInputs implements MouseInputListener {
 
     @Override
     public void mouseMoved(MouseEvent e) {
-        LOGGER.fine("Mouse moved at: " + e.getPoint());
+        Rectangle endTurnButton = panel.getEndTurnButton();
+        Rectangle playAgainButton = panel.getPlayAgainButton();
+        Rectangle backToMenuButton = panel.getBackToMenuButton();
+
+        boolean cursorChanged = false;
+
+        // Check End Turn button
+        if (panel.isTurnMoved() && !panel.isGameOver()) {
+            boolean isHovering = endTurnButton.contains(e.getPoint());
+            panel.setEndTurnButtonHovered(isHovering);
+            if (isHovering)
+                cursorChanged = true;
+        }
+
+        // Check Play Again button
+        if (panel.isGameOver()) {
+            boolean isHovering = playAgainButton.contains(e.getPoint());
+            panel.setPlayAgainHovered(isHovering);
+            if (isHovering)
+                cursorChanged = true;
+        }
+
+        // Check Back to Menu button
+        boolean isHovering = backToMenuButton.contains(e.getPoint());
+        panel.setBackToMenuHovered(isHovering);
+        if (isHovering)
+            cursorChanged = true;
+
+        // Update cursor
+        if (cursorChanged) {
+            panel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        } else {
+            panel.setCursor(Cursor.getDefaultCursor());
+        }
     }
 }

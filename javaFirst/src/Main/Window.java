@@ -1,41 +1,36 @@
-// Import the necessary libraries
 package Main;
 
 import javax.swing.JFrame;
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import javax.swing.JPanel;
 
-// Create a custom JFrame class called "Window"
 public class Window extends JFrame {
+    private JFrame jframe;
 
-    private JFrame jframe; // Declare an instance variable "jframe" of type JFrame
-
-    // Define the constructor for the Window class
-    public Window(Pannel pannel) {
-
-        // Initialize the instance variable "jframe" as a new JFrame object
+    public Window(Menu menu) {
         jframe = new JFrame();
-
-        // Set the default close operation for the JFrame to exit on close
-        jframe.setDefaultCloseOperation(jframe.EXIT_ON_CLOSE);
-
-        // Set the JFrame to be resizable
+        jframe.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         jframe.setResizable(true);
-
-        // Add the given Pannel object to the JFrame
-        jframe.add(pannel);
-
-        // Set the title of the JFrame
-        jframe.setTitle("marijuana cocaina eroina crack");
-
-        // Resize the JFrame to fit its contents
-        jframe.pack();
-
-        // Set the JFrame to be in full screen mode
+        jframe.setContentPane(menu);
+        jframe.setTitle("Checkers Game");
+        // Set a minimum size for the window
+        jframe.setMinimumSize(new Dimension(800, 600));
+        // Set a default size when not maximized
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int width = (int) (screenSize.width * 0.8);
+        int height = (int) (screenSize.height * 0.8);
+        jframe.setSize(width, height);
+        // Center the window on the screen
+        jframe.setLocationRelativeTo(null);
+        // Maximize the window
         jframe.setExtendedState(JFrame.MAXIMIZED_BOTH);
+        jframe.setVisible(true);
+    }
 
-        // Make the JFrame visible
-        jframe.setVisible(rootPaneCheckingEnabled);
+    public void setContentPane(JPanel panel) {
+        jframe.setContentPane(panel);
+        jframe.revalidate();
+        jframe.repaint();
     }
 }
-//:):):):):):):):):):):):):):):):):):):):):):):):):):):):):):):):):):):):)
