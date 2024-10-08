@@ -5,21 +5,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
-import javax.swing.JButton;
 import javax.swing.JPanel;
 import Inputs.MouseInputs;
 import java.io.File;
 
 public class Panel extends JPanel {
-    private static final int BOARD_SIZE = 8;
-    private static final int INITIAL_RED_ROWS = 3;
-    private static final int INITIAL_BLUE_ROWS = 3;
-
-    private int topLeftX, topLeftY, squareDim, gamePointX, gamePointY, offset, scaledWidth, scaledHeight;
-    private BufferedImage checkersBorder, redSquare, blackSquare, point, highlighter, bluePiece, redPiece, blueKing, redKing, redWin, blueWin;
+    private BufferedImage checkersBorder, redSquare, blackSquare, point, bluePiece, redPiece, blueKing, redKing, redWin, blueWin;
     private BufferedImage yellowHighlight, greenHighlight;
-    private double scaling = 1.0;
-    private SquareInfo[][] squareInfo;
     private MouseInputs mouseInputs;
     private boolean isEndTurnButtonHovered = false;
     private Rectangle playAgainButton;
@@ -30,18 +22,16 @@ public class Panel extends JPanel {
 
     private Font customFont;
     private Rectangle turnIndicator;
-    private Rectangle endTurnButton; // New button rectangle
-    private String currentTurn = "BLUE"; // Initial turn
-    private boolean gameOver = false;
-    private String winner = null;
-    private boolean turnMoved = false; // Track if a move has been made this turn
-    private boolean endTurnButtonVisible = false; // Track if the end turn button should be visible
+    private Rectangle endTurnButton;
+
+    private BoardRenderer boardRenderer;
+    private GameState gameState;
 
     public Panel(Runnable backToMenuAction) {
         this.backToMenuAction = backToMenuAction;
+        this.gameState = new GameState();
         initializeButtons();
         importImages();
-        initializeBoard();
         loadCustomFont();
         initializeTurnIndicator();
         mouseInputs = new MouseInputs(this);
@@ -49,46 +39,15 @@ public class Panel extends JPanel {
         addMouseMotionListener(mouseInputs);
         setOpaque(true);
         setBackground(Color.BLACK);
+        
+        boardRenderer = new BoardRenderer(checkersBorder, redSquare, blackSquare, point, 
+                                          bluePiece, redPiece, blueKing, redKing, 
+                                          yellowHighlight, greenHighlight);
     }
+
     private void initializeButtons() {
-        // Initialize rectangles instead of JButtons
         playAgainButton = new Rectangle(0, 0, 170, 40);
         backToMenuButton = new Rectangle(0, 0, 210, 40);
-    }
-    private void drawCustomButton(Graphics2D g2d, Rectangle button, String text, boolean isHovered) {
-        Color buttonColor = isHovered ? new Color(44, 95, 45, 197) : new Color(151, 188, 98,197);
-        
-        // Draw button background
-        g2d.setColor(buttonColor);
-        g2d.fill(button);
-
-        // Draw white outline
-        g2d.setColor(isHovered ? new Color(151, 188, 98,197) : new Color(44, 95, 45, 197));
-        g2d.setStroke(new BasicStroke(isHovered ? 4 : 3));
-        g2d.draw(button);
-
-        // Draw text
-        g2d.setColor(isHovered ? new Color(151, 188, 98,197) : new Color(44, 95, 45, 197));
-        g2d.setFont(customFont);
-        FontMetrics fm = g2d.getFontMetrics();
-        int textX = button.x + (button.width - fm.stringWidth(text)) / 2;
-        int textY = button.y + ((button.height - fm.getHeight()) / 2) + fm.getAscent();
-        g2d.drawString(text, textX, textY);
-    }
-    private void initializeBoard() {
-        squareInfo = new SquareInfo[BOARD_SIZE][BOARD_SIZE];
-        for (int i = 0; i < BOARD_SIZE; i++) {
-            for (int j = 0; j < BOARD_SIZE; j++) {
-                squareInfo[i][j] = new SquareInfo();
-                if ((i + j) % 2 == 0) {
-                    if (i < INITIAL_RED_ROWS) {
-                        squareInfo[i][j].setPieceColor(SquareInfo.PieceColor.RED);
-                    } else if (i >= BOARD_SIZE - INITIAL_BLUE_ROWS) {
-                        squareInfo[i][j].setPieceColor(SquareInfo.PieceColor.BLUE);
-                    }
-                }
-            }
-        }
     }
 
     private void loadCustomFont() {
@@ -115,7 +74,7 @@ public class Panel extends JPanel {
 
     private void initializeTurnIndicator() {
         turnIndicator = new Rectangle(15, 15, 170, 40);
-        endTurnButton = new Rectangle(15, 65, 210, 40); // Position it below the turn indicator
+        endTurnButton = new Rectangle(15, 65, 210, 40);
     }
 
     @Override
@@ -124,46 +83,37 @@ public class Panel extends JPanel {
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        calculateScalingAndPositions();
-        drawSquaresAndPieces(g2d);
-        drawBorder(g2d);
+        boardRenderer.calculateScalingAndPositions(this, gameState.getBoardSize());
+        boardRenderer.renderBoard(g2d, gameState.getSquareInfo(), gameState.getBoardSize());
+        
         drawTurnIndicator(g2d);
         drawWinnerIfGameOver(g2d);
         
-        if (endTurnButtonVisible && turnMoved && !gameOver) {
+        if (gameState.isEndTurnButtonVisible() && !gameState.isGameOver()) {
             drawEndTurnButton(g2d);
         }
 
         positionButtons();
         
-        // Draw Back to Menu button
         drawCustomButton(g2d, backToMenuButton, "BACK TO MENU", isBackToMenuHovered);
         
-        // Draw Play Again button if game is over
-        if (gameOver) {
+        if (gameState.isGameOver()) {
             drawCustomButton(g2d, playAgainButton, "PLAY AGAIN", isPlayAgainHovered);
         }
     }
 
-    private void drawEndTurnButton(Graphics g) {
-        Graphics2D g2d = (Graphics2D) g;
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        // Change button color based on hover state
+    private void drawEndTurnButton(Graphics2D g2d) {
         Color buttonColor = isEndTurnButtonHovered ? 
-            new Color(255,255,0, 177) : // Brighter purple when hovered
-            new Color(128, 0, 128, 177);   // Normal purple
+            new Color(255,255,0, 177) : 
+            new Color(128, 0, 128, 177);
 
-        // Draw button background
         g2d.setColor(buttonColor);
         g2d.fill(endTurnButton);
 
-        // Draw white outline, slightly thicker when hovered
         g2d.setColor(Color.WHITE);
         g2d.setStroke(new BasicStroke(isEndTurnButtonHovered ? 4 : 3));
         g2d.draw(endTurnButton);
 
-        // Draw text
         g2d.setColor(Color.WHITE);
         g2d.setFont(customFont);
         FontMetrics fm = g2d.getFontMetrics();
@@ -172,7 +122,6 @@ public class Panel extends JPanel {
         int textY = endTurnButton.y + ((endTurnButton.height - fm.getHeight()) / 2) + fm.getAscent();
         g2d.drawString(text, textX, textY);
 
-        // Optional: change cursor when hovering
         if (isEndTurnButtonHovered) {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         } else {
@@ -180,146 +129,52 @@ public class Panel extends JPanel {
         }
     }
 
-    private void calculateScalingAndPositions() {
-        int imgWidth = checkersBorder.getWidth();
-        int imgHeight = checkersBorder.getHeight();
-        double panelAspectRatio = (double) getWidth() / getHeight();
-        double imgAspectRatio = (double) imgWidth / imgHeight;
-        
-        if (panelAspectRatio > imgAspectRatio) {
-            scaling = (double) getHeight() / imgHeight;
-        } else {
-            scaling = (double) getWidth() / imgWidth;
-        }
-        
-        scaledWidth = (int) Math.ceil(scaling * imgWidth);
-        scaledHeight = (int) Math.ceil(scaling * imgHeight);
-        topLeftX = (getWidth() - scaledWidth) / 2;
-        topLeftY = (getHeight() - scaledHeight) / 2;
-        
-        gamePointX = topLeftX + (int) (5 * scaling);
-        gamePointY = topLeftY + (int) (5 * scaling);
-        squareDim = (int) (redSquare.getWidth() * scaling);
-        offset = scaledWidth - (10 * (int)scaling) - (squareDim * BOARD_SIZE);
-    }
-
-    private void drawBorder(Graphics g) {
-        g.drawImage(checkersBorder, topLeftX, topLeftY, scaledWidth, scaledHeight, null);
-    }
-
-    private void drawSquaresAndPieces(Graphics g) {
-        int pieceDim = (int) (bluePiece.getWidth() * scaling);
-
-        for (int i = 0; i < BOARD_SIZE; i++) {
-            for (int j = 0; j < BOARD_SIZE; j++) {
-                int x = gamePointX + squareDim * j;
-                int y = gamePointY + squareDim * i;
-                
-                drawSquare(g, i, j, x, y);
-                drawHighlight(g, i, j, x, y);
-                drawPiece(g, i, j, x, y, pieceDim);
-                drawPossibleMove(g, i, j, x, y);
-
-                updateSquareInfo(i, j, x, y);
-            }
-        }
-    }
-
-    private void drawSquare(Graphics g, int i, int j, int x, int y) {
-        BufferedImage squareImage = ((i + j) % 2 == 0) ? redSquare : blackSquare;
-        int width = (j == BOARD_SIZE - 1) ? squareDim + offset : squareDim;
-        int height = (i == BOARD_SIZE - 1) ? squareDim + offset : squareDim;
-        g.drawImage(squareImage, x, y, width, height, null);
-    }
-
-    private void drawHighlight(Graphics g, int i, int j, int x, int y) {
-        SquareInfo square = squareInfo[i][j];
-        if (square.isHighlighted()) {
-            BufferedImage highlightImage = square.getPieceColor() != SquareInfo.PieceColor.NONE ? yellowHighlight : greenHighlight;
-            g.drawImage(highlightImage, x, y, squareDim, squareDim, null);
-        }
-    }
-
-    private void drawPiece(Graphics g, int i, int j, int x, int y, int pieceDim) {
-        SquareInfo square = squareInfo[i][j];
-        if (square.getPieceColor() == SquareInfo.PieceColor.RED) {
-            g.drawImage(square.isKing() ? redKing : redPiece, x, y, pieceDim, pieceDim, null);
-        } else if (square.getPieceColor() == SquareInfo.PieceColor.BLUE) {
-            g.drawImage(square.isKing() ? blueKing : bluePiece, x, y, pieceDim, pieceDim, null);
-        }
-    }
-
-    private void drawPossibleMove(Graphics g, int i, int j, int x, int y) {
-        SquareInfo square = squareInfo[i][j];
-        if (square.isPossibleMove()) {
-            g.drawImage(point, x, y, squareDim, squareDim, null);
-        }
-    }
-
-    private void updateSquareInfo(int i, int j, int x, int y) {
-        squareInfo[i][j].setLocationX(x);
-        squareInfo[i][j].setLocationY(y);
-        squareInfo[i][j].setWidth(squareDim + (j == BOARD_SIZE - 1 ? offset : 0));
-        squareInfo[i][j].setHeight(squareDim + (i == BOARD_SIZE - 1 ? offset : 0));
-    }
-
     private void drawWinnerIfGameOver(Graphics g) {
-        if (gameOver) {
-            BufferedImage winImage = winner.equals("RED") ? redWin : blueWin;
+        if (gameState.isGameOver()) {
+            BufferedImage winImage = gameState.getWinner().equals("RED") ? redWin : blueWin;
             
-            // Calculate dimensions while maintaining aspect ratio
-            int winImageWidth = scaledWidth / 2;
+            int winImageWidth = getWidth() / 2;
             int winImageHeight = (winImageWidth * winImage.getHeight()) / winImage.getWidth();
             
-            // Center horizontally relative to the game board
-            int winImageX = topLeftX + (scaledWidth - winImageWidth) / 2;
-            
-            // Vertical position (you can adjust this if needed)
+            int winImageX = (getWidth() - winImageWidth) / 2;
             int winImageY = getHeight() / 4 - winImageHeight / 2;
             
             g.drawImage(winImage, winImageX, winImageY, winImageWidth, winImageHeight, null);
         }
     }
+
     private void positionButtons() {
-        // Position "Back to Menu" button
         int backButtonX = getWidth() - backToMenuButton.width - 20;
         int backButtonY = 20;
         backToMenuButton.setLocation(backButtonX, backButtonY);
 
-        // Position "Play Again" button if game is over
-        if (gameOver) {
-            int winImageBottom = getHeight() / 4 + scaledHeight / 4;
+        if (gameState.isGameOver()) {
+            int winImageBottom = getHeight() / 4 + getHeight() / 4;
             int playAgainY = winImageBottom + (getHeight() - winImageBottom) / 2 - playAgainButton.height / 2;
             int playAgainX = (getWidth() - playAgainButton.width) / 2;
             playAgainButton.setLocation(playAgainX, playAgainY);
         }
     }
     
-    private void drawTurnIndicator(Graphics g) {
-        Graphics2D g2d = (Graphics2D) g;
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    private void drawTurnIndicator(Graphics2D g2d) {
+        Color turnColor = gameState.getCurrentTurn().equals("BLUE") ? new Color(0, 0, 255, 177) : new Color(255, 0, 0, 200);
 
-        // Set color based on current turn
-        Color turnColor = currentTurn.equals("BLUE") ? new Color(0, 0, 255, 177) : new Color(255, 0, 0, 200);
-
-        // Draw white outline
         g2d.setColor(Color.WHITE);
-        g2d.setStroke(new BasicStroke(3)); // Set the thickness of the outline
+        g2d.setStroke(new BasicStroke(3));
         g2d.draw(turnIndicator);
 
-        // Fill rectangle with turn color
         g2d.setColor(turnColor);
         g2d.fill(turnIndicator);
 
-        // Draw text
         g2d.setColor(Color.WHITE);
         g2d.setFont(customFont);
         FontMetrics fm = g2d.getFontMetrics();
-        String text = currentTurn + " TURN";
+        String text = gameState.getCurrentTurn() + " TURN";
         int textX = turnIndicator.x + (turnIndicator.width - fm.stringWidth(text)) / 2;
         int textY = turnIndicator.y + ((turnIndicator.height - fm.getHeight()) / 2) + fm.getAscent();
         g2d.drawString(text, textX, textY);
     }
+
     private void importImages() {
         try {
             checkersBorder = ImageIO.read(getClass().getResourceAsStream("/imgs/checkersBorder.png"));
@@ -330,7 +185,6 @@ public class Panel extends JPanel {
             blueKing = ImageIO.read(getClass().getResourceAsStream("/imgs/blueKing.png"));
             redPiece = ImageIO.read(getClass().getResourceAsStream("/imgs/redThing.png"));
             redKing = ImageIO.read(getClass().getResourceAsStream("/imgs/redKing.png"));
-            highlighter = ImageIO.read(getClass().getResourceAsStream("/imgs/highlighter.png"));
             redWin = ImageIO.read(getClass().getResourceAsStream("/imgs/redWin.png"));
             blueWin = ImageIO.read(getClass().getResourceAsStream("/imgs/blueWin.png"));
             yellowHighlight = ImageIO.read(getClass().getResourceAsStream("/imgs/yellowHighlight.png"));
@@ -340,79 +194,72 @@ public class Panel extends JPanel {
         }
     }
 
+    private void drawCustomButton(Graphics2D g2d, Rectangle button, String text, boolean isHovered) {
+        Color buttonColor = isHovered ? new Color(44, 95, 45, 197) : new Color(151, 188, 98,197);
+        
+        g2d.setColor(buttonColor);
+        g2d.fill(button);
+
+        g2d.setColor(isHovered ? new Color(151, 188, 98,197) : new Color(44, 95, 45, 197));
+        g2d.setStroke(new BasicStroke(isHovered ? 4 : 3));
+        g2d.draw(button);
+
+        g2d.setColor(isHovered ? new Color(151, 188, 98,197) : new Color(44, 95, 45, 197));
+        g2d.setFont(customFont);
+        FontMetrics fm = g2d.getFontMetrics();
+        int textX = button.x + (button.width - fm.stringWidth(text)) / 2;
+        int textY = button.y + ((button.height - fm.getHeight()) / 2) + fm.getAscent();
+        g2d.drawString(text, textX, textY);
+    }
+
     public void clearPossibleMoves() {
-        for (int i = 0; i < BOARD_SIZE; i++) {
-            for (int j = 0; j < BOARD_SIZE; j++) {
-                squareInfo[i][j].setPossibleMove(false);
-            }
-        }
+        gameState.clearPossibleMoves();
+       // boardRenderer.setSquareInfo(gameState.getSquareInfo());
     }
 
-    private boolean isRedLose() {
-        return !hasPiecesOfColor(SquareInfo.PieceColor.RED);
-    }
-
-    private boolean isBlueLose() {
-        return !hasPiecesOfColor(SquareInfo.PieceColor.BLUE);
-    }
     public void setGameOver(String winner) {
-        this.gameOver = true;
-        this.winner = winner;
-        System.out.println(winner + " wins the game!");
+        gameState.setGameOver(winner);
         repaint();
     }
+
     public void restartGame() {
-        initializeBoard();
-        gameOver = false;
-        winner = null;
-        currentTurn = "BLUE";
-        turnMoved = false;
-        endTurnButtonVisible = false;
+        gameState.restartGame();
+        //boardRenderer.setSquareInfo(gameState.getSquareInfo());
         repaint();
-    }
-    private boolean hasPiecesOfColor(SquareInfo.PieceColor color) {
-        for (int i = 0; i < BOARD_SIZE; i++) {
-            for (int j = 0; j < BOARD_SIZE; j++) {
-                if (squareInfo[i][j].getPieceColor() == color) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     public SquareInfo[][] getSquareInfo() {
-        return squareInfo;
+        return gameState.getSquareInfo();
     }
 
     public void setSquareInfo(SquareInfo[][] squareInfo) {
-        this.squareInfo = squareInfo;
+        gameState.setSquareInfo(squareInfo);
+        //boardRenderer.setSquareInfo(squareInfo);
     }
 
     public void setCurrentTurn(String turn) {
-        this.currentTurn = turn;
+        gameState.setCurrentTurn(turn);
         repaint();
     }
+
     public void setTurnMoved(boolean moved) {
-        this.turnMoved = moved;
-        this.endTurnButtonVisible = moved;
+        gameState.setTurnMoved(moved);
         repaint();
     }
 
     public boolean isTurnMoved() {
-        return turnMoved;
+        return gameState.isTurnMoved();
     }
 
     public void endTurn() {
-        currentTurn = currentTurn.equals("BLUE") ? "RED" : "BLUE";
-        turnMoved = false;
-        endTurnButtonVisible = false;
+        gameState.endTurn();
         repaint();
     }
 
     public Rectangle getEndTurnButton() {
         return endTurnButton;
     }
+
     public void setEndTurnButtonHovered(boolean hovered) {
         if (this.isEndTurnButtonHovered != hovered) {
             this.isEndTurnButtonHovered = hovered;
@@ -423,6 +270,7 @@ public class Panel extends JPanel {
     public boolean isEndTurnButtonHovered() {
         return isEndTurnButtonHovered;
     }
+
     public Rectangle getPlayAgainButton() {
         return playAgainButton;
     }
@@ -446,6 +294,10 @@ public class Panel extends JPanel {
     }
 
     public boolean isGameOver() {
-        return gameOver;
+        return gameState.isGameOver();
+    }
+
+    public GameState getGameState() {
+        return gameState;
     }
 }
