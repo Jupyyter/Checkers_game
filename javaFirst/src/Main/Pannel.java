@@ -1,11 +1,13 @@
 package Main;
 
-import java.awt.Graphics;
+import java.awt.*;
 import java.io.IOException;
+import java.io.InputStream;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import Inputs.MouseInputs;
+import java.io.File;
 
 public class Pannel extends JPanel {
     private static final int BOARD_SIZE = 8;
@@ -19,13 +21,21 @@ public class Pannel extends JPanel {
     private SquareInfo[][] squareInfo;
     private MouseInputs mouseInputs;
 
+    private Font customFont;
+    private Rectangle turnIndicator;
+    private String currentTurn = "BLUE"; // Initial turn
+    private boolean gameOver = false;
+    private String winner = null;
+
     public Pannel() {
+        importImages();
+        initializeBoard();
+        loadCustomFont();
+        initializeTurnIndicator();
         mouseInputs = new MouseInputs(this);
         addMouseListener(mouseInputs);
         addMouseMotionListener(mouseInputs);
-        importImages();
-        initializeBoard();
-        setOpaque(true);  // Optimization: Avoid unnecessary repainting of underlying components
+        setOpaque(true);
     }
 
     private void initializeBoard() {
@@ -44,6 +54,36 @@ public class Pannel extends JPanel {
         }
     }
 
+    private void loadCustomFont() {
+        try {
+            // Try loading from file system
+            File fontFile = new File("fonts/font.ttf");
+            if (fontFile.exists()) {
+                customFont = Font.createFont(Font.TRUETYPE_FONT, fontFile).deriveFont(18f);
+            } else {
+                // Try loading from resources
+                InputStream is = getClass().getResourceAsStream("/fonts/font2.ttf");
+                if (is != null) {
+                    customFont = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(18f);
+                    is.close();
+                } else {
+                    throw new IOException("Font file not found in file system or resources");
+                }
+            }
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            ge.registerFont(customFont);
+            System.out.println("Custom font loaded successfully: " + customFont.getName());
+        } catch (IOException | FontFormatException e) {
+            e.printStackTrace();
+            System.out.println("Failed to load custom font. Using fallback font.");
+            customFont = new Font("Arial", Font.BOLD, 18); // Fallback font
+        }
+    }
+
+    private void initializeTurnIndicator() {
+        turnIndicator = new Rectangle(15, 15, 170, 40);
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -52,6 +92,7 @@ public class Pannel extends JPanel {
         drawSquaresAndPieces(g);
         drawWinnerIfGameOver(g);
         drawBorder(g);  // Draw border last so it appears on top
+        drawTurnIndicator(g);
     }
 
     private void calculateScalingAndPositions() {
@@ -138,11 +179,31 @@ public class Pannel extends JPanel {
     }
 
     private void drawWinnerIfGameOver(Graphics g) {
-        if (isRedLose()) {
-            g.drawImage(blueWin, topLeftX, topLeftY, scaledWidth, scaledHeight, null);
-        } else if (isBlueLose()) {
-            g.drawImage(redWin, topLeftX, topLeftY, scaledWidth, scaledHeight, null);
+        if (gameOver) {
+            BufferedImage winImage = winner.equals("RED") ? redWin : blueWin;
+            g.drawImage(winImage, topLeftX, topLeftY, scaledWidth, scaledHeight, null);
         }
+    }
+
+    private void drawTurnIndicator(Graphics g) {
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // Set color based on current turn
+        Color turnColor = currentTurn.equals("BLUE") ? new Color(0, 0, 255, 200) : new Color(255, 0, 0, 200);
+        g2d.setColor(turnColor);
+
+        // Draw rectangle
+        g2d.fill(turnIndicator);
+
+        // Draw text
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(customFont);
+        FontMetrics fm = g2d.getFontMetrics();
+        String text = currentTurn + " TURN";
+        int textX = turnIndicator.x + (turnIndicator.width - fm.stringWidth(text)) / 2;
+        int textY = turnIndicator.y + ((turnIndicator.height - fm.getHeight()) / 2) + fm.getAscent();
+        g2d.drawString(text, textX, textY);
     }
 
     private void importImages() {
@@ -180,7 +241,12 @@ public class Pannel extends JPanel {
     private boolean isBlueLose() {
         return !hasPiecesOfColor(SquareInfo.PieceColor.BLUE);
     }
-
+    public void setGameOver(String winner) {
+        this.gameOver = true;
+        this.winner = winner;
+        System.out.println(winner + " wins the game!");
+        repaint();
+    }
     private boolean hasPiecesOfColor(SquareInfo.PieceColor color) {
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
@@ -198,5 +264,10 @@ public class Pannel extends JPanel {
 
     public void setSquareInfo(SquareInfo[][] squareInfo) {
         this.squareInfo = squareInfo;
+    }
+
+    public void setCurrentTurn(String turn) {
+        this.currentTurn = turn;
+        repaint();
     }
 }

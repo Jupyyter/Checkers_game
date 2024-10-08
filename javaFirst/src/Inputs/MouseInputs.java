@@ -23,6 +23,8 @@ public class MouseInputs implements MouseInputListener {
     public MouseInputs(Pannel panel) {
         this.panel = panel;
         this.currentTurn = SquareInfo.PieceColor.BLUE; // blue starts first
+        panel.setCurrentTurn("BLUE"); // Set initial turn on the panel
+        checkForAvailableMoves(); // Check for available moves at the start of the game
     }
 
     @Override
@@ -62,28 +64,37 @@ public class MouseInputs implements MouseInputListener {
         // Highlight the clicked square
         clickedSquare.setHighlighted(true);
 
-        if (selectedRow == -1 && selectedCol == -1) {
-            // No piece selected yet
-            if (clickedSquare.getPieceColor() == currentTurn) {
-                selectPiece(row, col);
+        if (isCapturing) {
+            // If we're in the middle of a capture sequence, only allow moves for the capturing piece
+            if (row == selectedRow && col == selectedCol) {
+                // Clicked on the capturing piece, show possible moves
+                calculatePossibleMoves(row, col);
+            } else if (clickedSquare.isPossibleMove()) {
+                // Clicked on a valid capture move
+                movePiece(row, col);
             }
         } else {
-            // A piece is already selected
-            if (clickedSquare.isPossibleMove()) {
-                movePiece(row, col);
-            } else if (clickedSquare.getPieceColor() == currentTurn) {
-                // Selecting a different piece of the same color
-                selectPiece(row, col);
+            if (selectedRow == -1 && selectedCol == -1) {
+                // No piece selected yet
+                if (clickedSquare.getPieceColor() == currentTurn) {
+                    selectPiece(row, col);
+                }
             } else {
-                // Clicking an invalid square, deselect the current piece
-                deselectPiece();
+                // A piece is already selected
+                if (clickedSquare.isPossibleMove()) {
+                    movePiece(row, col);
+                } else if (clickedSquare.getPieceColor() == currentTurn) {
+                    // Selecting a different piece of the same color
+                    selectPiece(row, col);
+                } else {
+                    // Clicking an invalid square, deselect the current piece
+                    deselectPiece();
+                }
             }
         }
 
         panel.repaint();
     }
-
-
 
     private void selectPiece(int row, int col) {
         deselectPiece();
@@ -92,6 +103,7 @@ public class MouseInputs implements MouseInputListener {
         panel.getSquareInfo()[row][col].setHighlighted(true);
         calculatePossibleMoves(row, col);
     }
+
     private void clearHighlights() {
         SquareInfo[][] squareInfo = panel.getSquareInfo();
         for (int i = 0; i < BOARD_SIZE; i++) {
@@ -100,6 +112,7 @@ public class MouseInputs implements MouseInputListener {
             }
         }
     }
+
     private void deselectPiece() {
         if (selectedRow != -1 && selectedCol != -1) {
             clearPossibleMoves();
@@ -117,23 +130,13 @@ public class MouseInputs implements MouseInputListener {
 
         boolean captureAvailable = checkCaptures(row, col, color, isKing);
 
-        if (!captureAvailable) {
+        if (!isCapturing) {
             checkRegularMoves(row, col, color, isKing);
         }
 
         // Even if no moves are available, keep the piece selected
     }
-    private boolean hasAnyPossibleMoves() {
-        SquareInfo[][] squareInfo = panel.getSquareInfo();
-        for (int i = 0; i < BOARD_SIZE; i++) {
-            for (int j = 0; j < BOARD_SIZE; j++) {
-                if (squareInfo[i][j].isPossibleMove()) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
+
     private boolean checkCaptures(int row, int col, SquareInfo.PieceColor color, boolean isKing) {
         boolean captureAvailable = false;
         int[][] directions = getDirections(color, isKing);
@@ -179,20 +182,20 @@ public class MouseInputs implements MouseInputListener {
         SquareInfo[][] squareInfo = panel.getSquareInfo();
         SquareInfo oldSquare = squareInfo[selectedRow][selectedCol];
         SquareInfo newSquare = squareInfo[newRow][newCol];
-    
+
         // Move the piece
         newSquare.setPieceColor(oldSquare.getPieceColor());
         newSquare.setKing(oldSquare.isKing());
         oldSquare.setPieceColor(SquareInfo.PieceColor.NONE);
         oldSquare.setKing(false);
-    
+
         // Check if the piece should become a king
         if (newRow == 0 && currentTurn == SquareInfo.PieceColor.BLUE) {
             newSquare.setKing(true);
         } else if (newRow == BOARD_SIZE - 1 && currentTurn == SquareInfo.PieceColor.RED) {
             newSquare.setKing(true);
         }
-    
+
         // Handle captures
         boolean captureOccurred = false;
         if (Math.abs(newRow - selectedRow) == 2) {
@@ -203,11 +206,11 @@ public class MouseInputs implements MouseInputListener {
             captureOccurred = true;
             captureSequence.add(new int[]{newRow, newCol});
         }
-    
+
         // Check for additional captures
         clearPossibleMoves();
         boolean additionalCaptures = checkCaptures(newRow, newCol, currentTurn, newSquare.isKing());
-    
+
         if (captureOccurred && additionalCaptures) {
             isCapturing = true;
             panel.getSquareInfo()[newRow][newCol].setHighlighted(true);
@@ -222,12 +225,16 @@ public class MouseInputs implements MouseInputListener {
                     squareInfo[pos[0]][pos[1]].setPieceColor(SquareInfo.PieceColor.NONE);
                     squareInfo[pos[0]][pos[1]].setKing(false);
                 }
-                // The final position is already set correctly, no need to change it
             }
             // Switch turns
             currentTurn = getOppositeColor(currentTurn);
+            panel.setCurrentTurn(currentTurn == SquareInfo.PieceColor.BLUE ? "BLUE" : "RED"); // Update turn indicator
             deselectPiece();
             captureSequence.clear(); // Clear the capture sequence at the end of the turn
+            isCapturing = false; // Reset the capturing flag
+            
+            // Check for available moves for the next player
+            checkForAvailableMoves();
         }
     }
 
@@ -239,6 +246,7 @@ public class MouseInputs implements MouseInputListener {
             }
         }
     }
+
     private int[][] getDirections(SquareInfo.PieceColor color, boolean isKing) {
         if (isKing) {
             return new int[][]{{-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
@@ -248,12 +256,50 @@ public class MouseInputs implements MouseInputListener {
             return new int[][]{{-1, -1}, {-1, 1}};
         }
     }
+
     private boolean isValidPosition(int row, int col) {
         return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
     }
 
     private SquareInfo.PieceColor getOppositeColor(SquareInfo.PieceColor color) {
         return (color == SquareInfo.PieceColor.RED) ? SquareInfo.PieceColor.BLUE : SquareInfo.PieceColor.RED;
+    }
+
+    // New method to check for available moves
+    private void checkForAvailableMoves() {
+        boolean hasAvailableMoves = false;
+        SquareInfo[][] squareInfo = panel.getSquareInfo();
+
+        if (squareInfo == null) {
+            LOGGER.severe("squareInfo is null in checkForAvailableMoves");
+            return;
+        }
+
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                if (squareInfo[i][j].getPieceColor() == currentTurn) {
+                    calculatePossibleMoves(i, j);
+                    for (int row = 0; row < BOARD_SIZE; row++) {
+                        for (int col = 0; col < BOARD_SIZE; col++) {
+                            if (squareInfo[row][col].isPossibleMove()) {
+                                hasAvailableMoves = true;
+                                break;
+                            }
+                        }
+                        if (hasAvailableMoves) break;
+                    }
+                    clearPossibleMoves();
+                }
+                if (hasAvailableMoves) break;
+            }
+            if (hasAvailableMoves) break;
+        }
+
+        if (!hasAvailableMoves) {
+            // Current player has no available moves, they lose
+            String winner = (currentTurn == SquareInfo.PieceColor.RED) ? "BLUE" : "RED";
+            panel.setGameOver(winner);
+        }
     }
 
     // Other mouse event methods (unchanged)
