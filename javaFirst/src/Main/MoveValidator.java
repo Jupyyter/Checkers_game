@@ -1,7 +1,5 @@
 package Main;
 
-import Main.SquareInfo;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
