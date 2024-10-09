@@ -1,10 +1,11 @@
 package Inputs;
 
+import Main.BoardRenderer;
 import Main.Panel;
 import Main.SquareInfo;
 
 import java.awt.Cursor;
-import java.awt.Rectangle; // Add this import
+import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import javax.swing.event.MouseInputListener;
 import java.util.logging.Logger;
@@ -16,14 +17,16 @@ public class MouseInputs implements MouseInputListener {
     private static final int BOARD_SIZE = 8;
 
     private final Panel panel;
+    private final BoardRenderer boardRenderer;
     private SquareInfo.PieceColor currentTurn;
     private int selectedRow = -1;
     private int selectedCol = -1;
     private boolean isCapturing = false;
     private List<int[]> captureSequence = new ArrayList<>();
 
-    public MouseInputs(Panel panel) {
+    public MouseInputs(Panel panel, BoardRenderer boardRenderer) {
         this.panel = panel;
+        this.boardRenderer = boardRenderer;
         this.currentTurn = SquareInfo.PieceColor.BLUE;
         panel.setCurrentTurn("BLUE");
         checkForAvailableMoves();
@@ -81,12 +84,12 @@ public class MouseInputs implements MouseInputListener {
         panel.setEndTurnButtonHovered(false);
     }
     private int[] getBoardCoordinates(int x, int y) {
-        SquareInfo[][] squareInfo = panel.getSquareInfo();
-        for (int row = 0; row < BOARD_SIZE; row++) {
-            for (int col = 0; col < BOARD_SIZE; col++) {
+        SquareInfo[][] squareInfo = boardRenderer.getSquareInfo();
+        for (int row = 0; row < BoardRenderer.BOARD_SIZE; row++) {
+            for (int col = 0; col < BoardRenderer.BOARD_SIZE; col++) {
                 SquareInfo square = squareInfo[row][col];
                 if (x >= square.getLocationX() && x < square.getLocationX() + square.getWidth() &&
-                        y >= square.getLocationY() && y < square.getLocationY() + square.getHeight()) {
+                    y >= square.getLocationY() && y < square.getLocationY() + square.getHeight()) {
                     return new int[] { row, col };
                 }
             }
@@ -105,7 +108,7 @@ public class MouseInputs implements MouseInputListener {
         clickedSquare.setHighlighted(true);
 
         if (isCapturing) {
-            // If we're in the middle of a capture sequence, only allow moves for the
+            // If im in the middle of a capture sequence, only allow moves for the
             // capturing piece
             if (row == selectedRow && col == selectedCol) {
                 // Clicked on the capturing piece, show possible moves

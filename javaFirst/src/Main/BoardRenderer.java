@@ -5,6 +5,15 @@ import java.awt.image.BufferedImage;
 import javax.swing.JPanel;
 
 public class BoardRenderer {
+    // Add these constants
+    public static final int BOARD_SIZE = 8;
+    public static final int INITIAL_RED_ROWS = 3;
+    public static final int INITIAL_BLUE_ROWS = 3;
+    
+    // Add squareInfo as a field
+    private SquareInfo[][] squareInfo;
+    
+    // Existing fields remain unchanged
     private int topLeftX, topLeftY, squareDim, gamePointX, gamePointY, offset, scaledWidth, scaledHeight;
     private BufferedImage checkersBorder, redSquare, blackSquare, point, bluePiece, redPiece, blueKing, redKing;
     private BufferedImage yellowHighlight, greenHighlight;
@@ -24,8 +33,31 @@ public class BoardRenderer {
         this.redKing = redKing;
         this.yellowHighlight = yellowHighlight;
         this.greenHighlight = greenHighlight;
+        
+        initializeBoard();
     }
-
+    public void initializeBoard() {
+        squareInfo = new SquareInfo[BOARD_SIZE][BOARD_SIZE];
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                squareInfo[i][j] = new SquareInfo();
+                if ((i + j) % 2 == 0) {
+                    if (i < INITIAL_RED_ROWS) {
+                        squareInfo[i][j].setPieceColor(SquareInfo.PieceColor.RED);
+                    } else if (i >= BOARD_SIZE - INITIAL_BLUE_ROWS) {
+                        squareInfo[i][j].setPieceColor(SquareInfo.PieceColor.BLUE);
+                    }
+                }
+            }
+        }
+    }
+    public SquareInfo[][] getSquareInfo() {
+        return squareInfo;
+    }
+    
+    public void setSquareInfo(SquareInfo[][] squareInfo) {
+        this.squareInfo = squareInfo;
+    }
     public void calculateScalingAndPositions(JPanel panel, int boardSize) {
         int imgWidth = checkersBorder.getWidth();
         int imgHeight = checkersBorder.getHeight();

@@ -57,6 +57,6 @@ public class Game implements Runnable {
 
     @Override
     public void run() {
-        // This method is now empty as we're using Swing Timer
+        // This method is now empty as im using Swing Timer
     }
 }

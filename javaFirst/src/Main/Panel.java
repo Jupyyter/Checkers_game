@@ -29,22 +29,31 @@ public class Panel extends JPanel {
 
     public Panel(Runnable backToMenuAction) {
         this.backToMenuAction = backToMenuAction;
-        this.gameState = new GameState();
-        initializeButtons();
-        importImages();
-        loadCustomFont();
-        initializeTurnIndicator();
-        mouseInputs = new MouseInputs(this);
-        addMouseListener(mouseInputs);
-        addMouseMotionListener(mouseInputs);
-        setOpaque(true);
-        setBackground(Color.BLACK);
         
+        // Step 1: Import images first
+        importImages();
+        
+        // Step 2: Create BoardRenderer
         boardRenderer = new BoardRenderer(checkersBorder, redSquare, blackSquare, point, 
                                           bluePiece, redPiece, blueKing, redKing, 
                                           yellowHighlight, greenHighlight);
+        
+        // Step 3: Create GameState with BoardRenderer
+        gameState = new GameState(boardRenderer);
+        
+        // Step 4: Initialize other UI components
+        initializeButtons();
+        loadCustomFont();
+        initializeTurnIndicator();
+        
+        // Step 5: Create and attach MouseInputs
+        mouseInputs = new MouseInputs(this, boardRenderer); // Update MouseInputs constructor
+        addMouseListener(mouseInputs);
+        addMouseMotionListener(mouseInputs);
+        
+        setOpaque(true);
+        setBackground(Color.BLACK);
     }
-
     private void initializeButtons() {
         playAgainButton = new Rectangle(0, 0, 170, 40);
         backToMenuButton = new Rectangle(0, 0, 210, 40);
@@ -133,28 +142,56 @@ public class Panel extends JPanel {
         if (gameState.isGameOver()) {
             BufferedImage winImage = gameState.getWinner().equals("RED") ? redWin : blueWin;
             
-            int winImageWidth = getWidth() / 2;
-            int winImageHeight = (winImageWidth * winImage.getHeight()) / winImage.getWidth();
+            // Calculate dimensions that maintain aspect ratio and fit in window
+            double imageAspectRatio = (double) winImage.getWidth() / winImage.getHeight();
+            double windowAspectRatio = (double) getWidth() / getHeight();
             
+            int winImageWidth, winImageHeight;
+            
+            if (windowAspectRatio > imageAspectRatio) {
+                // Window is wider than image - constrain by height
+                winImageHeight = (int)(getHeight() * 0.7); // Use 70% of window height
+                winImageWidth = (int)(winImageHeight * imageAspectRatio);
+            } else {
+                // Window is taller than image - constrain by width
+                winImageWidth = (int)(getWidth() * 0.8); // Use 80% of window width
+                winImageHeight = (int)(winImageWidth / imageAspectRatio);
+            }
+            
+            // Center the image
             int winImageX = (getWidth() - winImageWidth) / 2;
-            int winImageY = getHeight() / 4 - winImageHeight / 2;
+            int winImageY = (getHeight() - winImageHeight) / 3-29; // Position at 1/3 of window height
             
             g.drawImage(winImage, winImageX, winImageY, winImageWidth, winImageHeight, null);
         }
     }
 
-    private void positionButtons() {
-        int backButtonX = getWidth() - backToMenuButton.width - 20;
-        int backButtonY = 20;
-        backToMenuButton.setLocation(backButtonX, backButtonY);
+    
+private void positionButtons() {
+    int backButtonX = getWidth() - backToMenuButton.width - 20;
+    int backButtonY = 20;
+    backToMenuButton.setLocation(backButtonX, backButtonY);
 
-        if (gameState.isGameOver()) {
-            int winImageBottom = getHeight() / 4 + getHeight() / 4;
-            int playAgainY = winImageBottom + (getHeight() - winImageBottom) / 2 - playAgainButton.height / 2;
-            int playAgainX = (getWidth() - playAgainButton.width) / 2;
-            playAgainButton.setLocation(playAgainX, playAgainY);
+    if (gameState.isGameOver()) {
+        BufferedImage winImage = gameState.getWinner().equals("RED") ? redWin : blueWin;
+        double imageAspectRatio = (double) winImage.getWidth() / winImage.getHeight();
+        
+        int winImageHeight;
+        if ((double) getWidth() / getHeight() > imageAspectRatio) {
+            winImageHeight = (int)(getHeight() * 0.7);
+        } else {
+            int winImageWidth = (int)(getWidth() * 0.8);
+            winImageHeight = (int)(winImageWidth / imageAspectRatio);
         }
+        
+        int winImageBottom = (getHeight() - winImageHeight) / 3 + winImageHeight;
+        
+        // Position Play Again button below the image
+        int playAgainY = winImageBottom + 20; // 20 pixels below the image
+        int playAgainX = (getWidth() - playAgainButton.width) / 2;
+        playAgainButton.setLocation(playAgainX, playAgainY);
     }
+}
     
     private void drawTurnIndicator(Graphics2D g2d) {
         Color turnColor = gameState.getCurrentTurn().equals("BLUE") ? new Color(0, 0, 255, 177) : new Color(255, 0, 0, 200);
@@ -223,18 +260,17 @@ public class Panel extends JPanel {
     }
 
     public void restartGame() {
-        gameState.restartGame();
-        //boardRenderer.setSquareInfo(gameState.getSquareInfo());
+        boardRenderer.initializeBoard();
+        gameState.resetGameState();
         repaint();
     }
 
     public SquareInfo[][] getSquareInfo() {
-        return gameState.getSquareInfo();
+        return boardRenderer.getSquareInfo();
     }
 
     public void setSquareInfo(SquareInfo[][] squareInfo) {
-        gameState.setSquareInfo(squareInfo);
-        //boardRenderer.setSquareInfo(squareInfo);
+        boardRenderer.setSquareInfo(squareInfo);
     }
 
     public void setCurrentTurn(String turn) {
