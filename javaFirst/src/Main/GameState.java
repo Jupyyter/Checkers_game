@@ -1,15 +1,15 @@
 package Main;
 
 public class GameState {
-    private BoardRenderer boardRenderer;
+    private GameBoard gameBoard;
     private String currentTurn;
     private boolean gameOver;
     private String winner;
     private boolean turnMoved;
     private boolean endTurnButtonVisible;
 
-    public GameState(BoardRenderer boardRenderer) {
-        this.boardRenderer = boardRenderer;
+    public GameState(GameBoard gameBoard) {
+        this.gameBoard = gameBoard;
         resetGameState();
     }
 
@@ -27,7 +27,7 @@ public class GameState {
     }
 
     public void restartGame() {
-        boardRenderer.initializeBoard();
+        gameBoard.initializeBoard();
         gameOver = false;
         winner = null;
         currentTurn = "BLUE";
@@ -36,9 +36,9 @@ public class GameState {
     }
 
     public void clearPossibleMoves() {
-        SquareInfo[][] squareInfo = boardRenderer.getSquareInfo();
-        for (int i = 0; i < BoardRenderer.BOARD_SIZE; i++) {
-            for (int j = 0; j < BoardRenderer.BOARD_SIZE; j++) {
+        SquareInfo[][] squareInfo = gameBoard.getSquareInfo();
+        for (int i = 0; i < GameBoard.BOARD_SIZE; i++) {
+            for (int j = 0; j < GameBoard.BOARD_SIZE; j++) {
                 squareInfo[i][j].setPossibleMove(false);
             }
         }
@@ -52,15 +52,15 @@ public class GameState {
 
     // Getters and setters
     public int getBoardSize() {
-        return BoardRenderer.BOARD_SIZE;
+        return GameBoard.BOARD_SIZE;
     }
 
     public SquareInfo[][] getSquareInfo() {
-        return boardRenderer.getSquareInfo();
+        return gameBoard.getSquareInfo();
     }
 
     public void setSquareInfo(SquareInfo[][] squareInfo) {
-        boardRenderer.setSquareInfo(squareInfo);
+        gameBoard.setSquareInfo(squareInfo);
     }
 
     public String getCurrentTurn() {
@@ -92,7 +92,7 @@ public class GameState {
         return endTurnButtonVisible;
     }
 
-    public BoardRenderer getBoardRenderer() {
-        return boardRenderer;
+    public GameBoard getgameBoard() {
+        return gameBoard;
     }
 }

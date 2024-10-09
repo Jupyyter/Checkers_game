@@ -24,7 +24,7 @@ public class Panel extends JPanel {
     private Rectangle turnIndicator;
     private Rectangle endTurnButton;
 
-    private BoardRenderer boardRenderer;
+    private GameBoard gameBoard;
     private GameState gameState;
 
     public Panel(Runnable backToMenuAction) {
@@ -33,13 +33,13 @@ public class Panel extends JPanel {
         // Step 1: Import images first
         importImages();
         
-        // Step 2: Create BoardRenderer
-        boardRenderer = new BoardRenderer(checkersBorder, redSquare, blackSquare, point, 
+        // Step 2: Create gameBoard
+        gameBoard = new GameBoard(checkersBorder, redSquare, blackSquare, point, 
                                           bluePiece, redPiece, blueKing, redKing, 
                                           yellowHighlight, greenHighlight);
         
-        // Step 3: Create GameState with BoardRenderer
-        gameState = new GameState(boardRenderer);
+        // Step 3: Create GameState with gameBoard
+        gameState = new GameState(gameBoard);
         
         // Step 4: Initialize other UI components
         initializeButtons();
@@ -47,7 +47,7 @@ public class Panel extends JPanel {
         initializeTurnIndicator();
         
         // Step 5: Create and attach MouseInputs
-        mouseInputs = new MouseInputs(this, boardRenderer); // Update MouseInputs constructor
+        mouseInputs = new MouseInputs(this, gameBoard); // Update MouseInputs constructor
         addMouseListener(mouseInputs);
         addMouseMotionListener(mouseInputs);
         
@@ -92,8 +92,8 @@ public class Panel extends JPanel {
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        boardRenderer.calculateScalingAndPositions(this, gameState.getBoardSize());
-        boardRenderer.renderBoard(g2d, gameState.getSquareInfo(), gameState.getBoardSize());
+        gameBoard.calculateScalingAndPositions(this, gameState.getBoardSize());
+        gameBoard.renderBoard(g2d, gameState.getSquareInfo(), gameState.getBoardSize());
         
         drawTurnIndicator(g2d);
         drawWinnerIfGameOver(g2d);
@@ -251,7 +251,7 @@ private void positionButtons() {
 
     public void clearPossibleMoves() {
         gameState.clearPossibleMoves();
-       // boardRenderer.setSquareInfo(gameState.getSquareInfo());
+       // gameBoard.setSquareInfo(gameState.getSquareInfo());
     }
 
     public void setGameOver(String winner) {
@@ -260,17 +260,17 @@ private void positionButtons() {
     }
 
     public void restartGame() {
-        boardRenderer.initializeBoard();
+        gameBoard.initializeBoard();
         gameState.resetGameState();
         repaint();
     }
 
     public SquareInfo[][] getSquareInfo() {
-        return boardRenderer.getSquareInfo();
+        return gameBoard.getSquareInfo();
     }
 
     public void setSquareInfo(SquareInfo[][] squareInfo) {
-        boardRenderer.setSquareInfo(squareInfo);
+        gameBoard.setSquareInfo(squareInfo);
     }
 
     public void setCurrentTurn(String turn) {

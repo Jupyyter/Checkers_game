@@ -4,7 +4,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.swing.JPanel;
 
-public class BoardRenderer {
+public class GameBoard {
     // Add these constants
     public static final int BOARD_SIZE = 8;
     public static final int INITIAL_RED_ROWS = 3;
@@ -19,7 +19,7 @@ public class BoardRenderer {
     private BufferedImage yellowHighlight, greenHighlight;
     private double scaling = 1.0;
 
-    public BoardRenderer(BufferedImage checkersBorder, BufferedImage redSquare, 
+    public GameBoard(BufferedImage checkersBorder, BufferedImage redSquare, 
                          BufferedImage blackSquare, BufferedImage point, BufferedImage bluePiece, 
                          BufferedImage redPiece, BufferedImage blueKing, BufferedImage redKing, 
                          BufferedImage yellowHighlight, BufferedImage greenHighlight) {
