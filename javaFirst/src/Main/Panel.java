@@ -6,7 +6,7 @@ import java.io.InputStream;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
-import Inputs.MouseInputs;
+
 import java.io.File;
 
 public class Panel extends JPanel {
@@ -30,23 +30,18 @@ public class Panel extends JPanel {
     public Panel(Runnable backToMenuAction) {
         this.backToMenuAction = backToMenuAction;
         
-        // Step 1: Import images first
         importImages();
         
-        // Step 2: Create gameBoard
         gameBoard = new GameBoard(checkersBorder, redSquare, blackSquare, point, 
                                           bluePiece, redPiece, blueKing, redKing, 
                                           yellowHighlight, greenHighlight);
         
-        // Step 3: Create GameState with gameBoard
         gameState = new GameState(gameBoard);
         
-        // Step 4: Initialize other UI components
         initializeButtons();
         loadCustomFont();
         initializeTurnIndicator();
         
-        // Step 5: Create and attach MouseInputs
         mouseInputs = new MouseInputs(this, gameBoard); // Update MouseInputs constructor
         addMouseListener(mouseInputs);
         addMouseMotionListener(mouseInputs);
@@ -150,11 +145,11 @@ public class Panel extends JPanel {
             
             if (windowAspectRatio > imageAspectRatio) {
                 // Window is wider than image - constrain by height
-                winImageHeight = (int)(getHeight() * 0.7); // Use 70% of window height
+                winImageHeight = (int)(getHeight() * 0.7); // 70% of window height
                 winImageWidth = (int)(winImageHeight * imageAspectRatio);
             } else {
                 // Window is taller than image - constrain by width
-                winImageWidth = (int)(getWidth() * 0.8); // Use 80% of window width
+                winImageWidth = (int)(getWidth() * 0.8); //  80% of window width
                 winImageHeight = (int)(winImageWidth / imageAspectRatio);
             }
             
@@ -336,4 +331,5 @@ private void positionButtons() {
     public GameState getGameState() {
         return gameState;
     }
+    
 }

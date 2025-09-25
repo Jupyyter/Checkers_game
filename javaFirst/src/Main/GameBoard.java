@@ -5,15 +5,12 @@ import java.awt.image.BufferedImage;
 import javax.swing.JPanel;
 
 public class GameBoard {
-    // Add these constants
     public static final int BOARD_SIZE = 8;
     public static final int INITIAL_RED_ROWS = 3;
     public static final int INITIAL_BLUE_ROWS = 3;
     
-    // Add squareInfo as a field
     private SquareInfo[][] squareInfo;
     
-    // Existing fields remain unchanged
     private int topLeftX, topLeftY, squareDim, gamePointX, gamePointY, offset, scaledWidth, scaledHeight;
     private BufferedImage checkersBorder, redSquare, blackSquare, point, bluePiece, redPiece, blueKing, redKing;
     private BufferedImage yellowHighlight, greenHighlight;

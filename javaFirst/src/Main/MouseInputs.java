@@ -1,9 +1,4 @@
-package Inputs;
-
-import Main.GameBoard;
-import Main.Panel;
-import Main.SquareInfo;
-import Main.MoveValidator;
+package Main;
 
 import java.awt.Cursor;
 import java.awt.Rectangle;
@@ -196,7 +191,7 @@ public class MouseInputs implements MouseInputListener {
         }
     }
 
-    // Other mouse event methods (unchanged)
+    // Other mouse event methods
     @Override
     public void mouseClicked(MouseEvent e) {
         LOGGER.fine("Mouse clicked at: " + e.getPoint());

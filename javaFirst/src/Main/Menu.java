@@ -15,7 +15,6 @@ public class Menu extends JPanel {
         setLayout(null); // Use null layout for custom positioning
         setBackground(Color.BLACK);
 
-        // Load the background image
         try {
             backgroundImage = ImageIO.read(getClass().getResourceAsStream("/imgs/checkers.png"));
         } catch (IOException e) {
@@ -29,8 +28,7 @@ public class Menu extends JPanel {
             Font customFont = Font.createFont(Font.TRUETYPE_FONT, getClass().getResourceAsStream("/fonts/font2.ttf")).deriveFont(Font.BOLD, 24);
             playButton.setFont(customFont);
         } catch (FontFormatException | IOException e) {
-            e.printStackTrace(); // Handle the exception if the font fails to load
-            // Optionally, you could fall back to a default font if the custom one fails to load
+            e.printStackTrace();
             playButton.setFont(new Font("Arial", Font.BOLD, 24));
         }
         
@@ -44,7 +42,6 @@ public class Menu extends JPanel {
             }
         });
 
-        // Add the play button to the panel
         add(playButton);
     }
 
